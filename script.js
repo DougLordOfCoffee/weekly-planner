@@ -1,4 +1,5 @@
-const DEFAULT_DATA = {
+let saved = JSON.parse(localStorage.getItem("voidData")) || {};
+let appData = {
   version: 1,
   weekly: [],
   daily: [],
@@ -9,13 +10,10 @@ const DEFAULT_DATA = {
   unlocked: [],
   lastDate: "",
   lastWeek: null,
-  focusMode: false
+  focusMode: false,
+  ...saved
 };
 
-let appData = Object.assign(
-  structuredClone(DEFAULT_DATA),
-  JSON.parse(localStorage.getItem("voidData")) || {}
-);
 
 // --- DASHBOARD TOGGLE ---
 function toggleView() {
@@ -73,27 +71,62 @@ function collect(id) {
 
 // --- RENDERING ---
 function renderView() {
-    checkResets();
-    ['weekly', 'daily'].forEach(type => {
-            const row = document.createElement("div");
-            row.className = "task-row";
+  checkResets();
 
-            const cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.checked = t.done;
-            cb.onchange = () => upd(type, i, -1, cb.checked);
+  ["weekly", "daily"].forEach(type => {
+    const cont = document.getElementById(type + "Display");
+    cont.innerHTML = `<h3>${type.toUpperCase()}</h3>`;
 
-            const label = document.createElement("span");
-            label.textContent = " " + t.val;
-            label.style.fontWeight = "bold";
+    appData[type].forEach((t, i) => {
+      if (!t.val) return;
 
-            row.append(cb, label);
-            cont.appendChild(row);
+      const row = document.createElement("div");
+      row.className = "task-row";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = t.done;
+      cb.onchange = () => upd(type, i, -1, cb.checked);
+
+      const label = document.createElement("span");
+      label.textContent = " " + t.val;
+      label.style.fontWeight = "bold";
+
+      row.append(cb, label);
+
+      if (appData.focusMode && !t.done) {
+        row.classList.add("focus-hide");
+      }
+
+      cont.appendChild(row);
+
+      // Subtasks
+      t.subs.forEach((s, si) => {
+        if (!s.val) return;
+
+        const sr = document.createElement("div");
+        sr.className = "sub-row";
+
+        const scb = document.createElement("input");
+        scb.type = "checkbox";
+        scb.checked = s.done;
+        scb.onchange = () => upd(type, i, si, scb.checked);
+
+        const slabel = document.createElement("span");
+        slabel.textContent = " " + s.val;
+
+        sr.append(scb, slabel);
+
+        if (appData.focusMode && !s.done) {
+          sr.classList.add("focus-hide");
+        }
+
+        cont.appendChild(sr);
+      });
     });
-    updateXP();
-}
-if (appData.focusMode && !t.done) {
-  row.classList.add("focus-hide");
+  });
+
+  updateXP();
 }
 
 
@@ -136,6 +169,10 @@ function updateXP() {
       });
 
         const p = total ? Math.round((earned / total) * 100) : 0;
+        
+        document.getElementById("xpBar").style.width = p + "%";
+        document.getElementById("xpLabel").innerText = `XP: ${p}%`;
+
 
 
     // Achievement Checks (Only unlock if p reaches threshold)
@@ -159,15 +196,6 @@ function updateVisuals() {
     document.getElementById('shader-layer').style.background = `rgba(0,0,0,${appData.shader})`;
 }
 
-function checkResets() {
-    const today = new Date().toDateString();
-    if (appData.lastDate !== today) {
-        appData.daily.forEach(t => { t.done = false; t.subs.forEach(s => s.done = false); });
-        appData.lastDate = today;
-        sync();
-        
-    }
-}
 function getWeekNumber(d) {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = date.getUTCDay() || 7;
@@ -199,6 +227,7 @@ function checkResets() {
 
   sync();
 }
+
 
 function updateTime() {
     const now = new Date();
@@ -240,3 +269,5 @@ appData.unlocked.forEach(u => {
     span.innerText = u === "VOID_WALKER" ? "🌱" : u === "SYNAPSE_LINK" ? "🌗" : "👑";
     document.getElementById('achievementList').appendChild(span);
 });
+
+renderView();
