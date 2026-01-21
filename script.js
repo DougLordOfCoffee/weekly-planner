@@ -1,64 +1,99 @@
-// --- INITIALIZATION ---
-const taskContainer = document.getElementById('taskContainer');
-const addTaskBtn = document.getElementById('addTaskBtn');
-const generateBtn = document.getElementById('generateBtn');
+// --- WEEK CALCULATION ---
+const now = new Date();
+const start = new Date(now.getFullYear(), 0, 1);
+const weekNum = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+document.getElementById('plannerTitle').innerText = `Weekly Planner: Week ${weekNum}/52`;
 
-// Set the Title on Load
-window.onload = () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 1);
-    const diff = now - start;
-    const oneDay = 1000 * 60 * 60 * 24;
-    const dayOfYear = Math.floor(diff / oneDay);
-    const weekNum = Math.ceil(dayOfYear / 7);
-    
-    document.getElementById('plannerTitle').innerText = `Weekly Planner: Week ${weekNum}/52`;
-};
+const taskList = document.getElementById('taskList');
 
-// --- ADD INPUT LOGIC ---
-addTaskBtn.addEventListener('click', () => {
-    const newInput = document.createElement('input');
-    newInput.type = 'text';
-    newInput.className = 'task-input';
-    newInput.placeholder = 'Enter task...';
-    taskContainer.appendChild(newInput);
+// --- ADD MAIN TASK ---
+document.getElementById('mainTaskBtn').addEventListener('click', () => {
+    const taskDiv = document.createElement('div');
+    taskDiv.className = 'task-group';
+    taskDiv.innerHTML = `
+        <div style="margin-top:10px;">
+            <input type="checkbox" class="main-check">
+            <input type="text" class="main-input" placeholder="Main Task (e.g. Laundry)">
+            <button onclick="addSub(this)">+ Sub</button>
+            <div class="sub-container" style="margin-left: 30px;"></div>
+        </div>
+    `;
+    taskList.appendChild(taskDiv);
 });
 
-// --- GENERATE LOGIC ---
-generateBtn.addEventListener('click', () => {
-    const inputs = document.querySelectorAll('.task-input');
-    let taskListString = "";
-    let totalTasks = 0;
-    let completedTasks = 0; // In a simple text input, we'll assume they aren't done yet
+// --- ADD SUBTASK ---
+function addSub(btn) {
+    const subContainer = btn.parentElement.querySelector('.sub-container');
+    const subDiv = document.createElement('div');
+    subDiv.innerHTML = `
+        <input type="checkbox" class="sub-check">
+        <input type="text" class="sub-input" placeholder="Subtask">
+    `;
+    subContainer.appendChild(subDiv);
+}
 
-    inputs.forEach((input, index) => {
-        if (input.value.trim() !== "") {
-            totalTasks++;
-            taskListString += `[ ] ${index + 1}. ${input.value}\n`;
+// --- GENERATE LOGIC ---
+document.getElementById('generateBtn').addEventListener('click', () => {
+    let output = `WEEK OF: ${now.toLocaleDateString()}\n`;
+    output += `WEEK PROGRESS: ${weekNum}/52\n\n`;
+    output += `================================\nTHINGS TO FINISH THIS WEEK\n================================\n`;
+
+    const mainTasks = document.querySelectorAll('.task-group');
+    let total = 0;
+    let done = 0;
+
+    mainTasks.forEach((group) => {
+        const mainInp = group.querySelector('.main-input').value;
+        const mainCheck = group.querySelector('.main-check').checked;
+        
+        if (mainInp) {
+            total++;
+            if (mainCheck) done++;
+            output += `[${mainCheck ? 'X' : ' '}] ${mainInp}\n`;
+
+            // Handle Subtasks
+            const subs = group.querySelectorAll('.sub-container div');
+            subs.forEach(sub => {
+                const subInp = sub.querySelector('.sub-input').value;
+                const subCheck = sub.querySelector('.sub-check').checked;
+                if (subInp) {
+                    output += `    - [${subCheck ? 'X' : ' '}] ${subInp}\n`;
+                }
+            });
         }
     });
 
-    // Simple Calculation Logic
-    // For now, it shows 0/Total. Later we can add checkboxes to the UI to calc "Done".
-    const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-    const template = `================================
-THINGS TO FINISH THIS WEEK
+    // Add back the Hardcoded Sequences
+    output += `
 ================================
-${taskListString}
+RIGHT NOW (END-OF-DAY RESET)
+================================
+[ ] Shower
+[ ] Get clothes out for tomorrow
+[ ] Set out coffee stuff -(OR)- Fridge Monster
+[ ] Plates out of room/off desk
+[ ] Sleep
+
+================================
+NEXT-DAY SEQUENCE (DEFAULT)
+================================
+Morning: Wake up, Dress, Wash, Coffee/Monster
+Room reset: Plates out, Gather clothes, Start laundry
+Focus: Textbook Audio + (Minecraft OR Folding)
+Fallback: Work on Computer Information
 
 ================================
 EXPECTED OUTCOME
 ================================
-That’s ${completedTasks} / ${totalTasks} tasks done
-≈ ${percentage}% of bullshit handled
+That’s ${done} / ${total} tasks done
+≈ ${total > 0 ? Math.round((done/total)*100) : 0}% of bullshit handled
 
 ================================
 BACKUP PLAN
 ================================
-If ANY TASKS don't get done Saturday morning:
-- Do it all on Saturday
-- Then you’re clear`;
+If ANY TASKS don't get done Saturday:
+- Do it all on Saturday morning.
+- Then you’re clear.`;
 
-    document.getElementById('outputBox').value = template;
+    document.getElementById('outputBox').value = output;
 });
