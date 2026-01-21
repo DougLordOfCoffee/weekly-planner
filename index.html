@@ -129,12 +129,19 @@
             <button onclick="toggleFocus()">FOCUS</button>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                <div id="weeklyDisplay" class="glass-panel"><h3>WEEKLY</h3></div>
-                <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
             </div>
 
             <div id="guideDisplay"></div>
             <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+            <div>
+                Morning Guide<br>
+                <textarea id="morningGuide" placeholder="Morning routine..." style="width:100%; height:80px; margin-top:5px;"></textarea>
+            </div>
+            <div>
+                Night Guide<br>
+                <textarea id="nightGuide" placeholder="Night routine..." style="width:100%; height:80px; margin-top:5px;"></textarea>
+            </div>
+        </div>
 
 
             <div class="glass-panel" style="margin-top:30px;">
