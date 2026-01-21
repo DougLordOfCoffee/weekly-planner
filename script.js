@@ -65,10 +65,15 @@ function addInput(type, val = "", subs = []) {
     const g = document.createElement('div');
     g.className = "input-group";
     g.style.marginBottom = "15px";
+    g.style.padding = "10px";
+    g.style.border = "1px solid var(--glass-border)";
+    g.style.borderRadius = "8px";
+
     g.innerHTML = `
-        <div style="display:flex; gap:5px;">
-            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="width:75%;">
-            <button onclick="this.parentElement.nextElementSibling.appendChild(createSubIn())" style="background:var(--accent); color:white; border:none; border-radius:4px; padding:4px 8px;">+S</button>
+        <div class="input-row">
+            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="width:70%;">
+            <button onclick="this.parentElement.nextElementSibling.appendChild(createSubIn())" style="background:var(--accent); color:white;">+S</button>
+            <button class="del-btn" onclick="this.closest('.input-group').remove()">X</button>
         </div>
         <div class="s-cont" style="margin-left:25px; display:flex; flex-direction:column;"></div>
     `;
@@ -77,13 +82,14 @@ function addInput(type, val = "", subs = []) {
 }
 
 function createSubIn(val = "") {
-    const i = document.createElement('input');
-    i.className = "s-in"; 
-    i.value = val; 
-    i.placeholder = "Subtask"; 
-    i.style.marginTop = "5px"; 
-    i.style.fontSize = "0.85rem";
-    return i;
+    const div = document.createElement('div');
+    div.className = "input-row";
+    div.style.marginTop = "5px";
+    div.innerHTML = `
+        <input type="text" class="s-in" value="${val}" placeholder="Subtask" style="width:80%; font-size:0.85rem;">
+        <button class="del-btn" onclick="this.parentElement.remove()">x</button>
+    `;
+    return div;
 }
 
 function collect(type) {
@@ -110,6 +116,9 @@ function collect(type) {
 // --- RENDERING ---
 function renderView() {
     const guide = document.getElementById("guideDisplay");
+    // Safety check: If dashboard isn't visible or element missing, skip
+    if (!guide) return; 
+
     guide.innerHTML = "";
 
     if (appData.guideNight) {
@@ -128,9 +137,13 @@ function renderView() {
 
     ["weekly", "daily"].forEach(type => {
         const cont = document.getElementById(type + "Display");
+        if (!cont) return; // Safety check
+        
         cont.innerHTML = `<h3>${type.toUpperCase()}</h3>`;
 
         appData[type].forEach((t, i) => {
+            if (!t.val) return;
+
             const row = document.createElement("div");
             row.className = "task-row";
             if (appData.focusMode && t.done) row.classList.add("focus-hide");
@@ -148,6 +161,7 @@ function renderView() {
             cont.appendChild(row);
 
             t.subs.forEach((s, si) => {
+                if (!s.val) return;
                 const sr = document.createElement("div");
                 sr.className = "sub-row";
                 if (appData.focusMode && s.done) sr.classList.add("focus-hide");

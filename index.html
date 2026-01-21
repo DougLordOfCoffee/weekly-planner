@@ -45,6 +45,13 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
+        .del-btn {
+             background: #ff4d4d !important;
+             padding: 2px 8px !important;
+             margin-left: 5px;
+             font-size: 0.8rem;
+       }
+
         /* Editor Styling */
         input[type="text"], input[type="time"], textarea {
             background: rgba(0, 0, 0, 0.5);
@@ -81,6 +88,8 @@
 
         .bar-outer { height: 12px; background: rgba(0,0,0,0.6); border-radius: 6px; border: 1px solid var(--glass-border); overflow: hidden; position: relative; }
         .bar-fill { height: 100%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .input-row { display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+</style>
     </style>
 </head>
 <body>
@@ -103,6 +112,7 @@
                 <div id="dailyInputs"><h3>DAILY</h3></div>
                 <button class="add-btn" onclick="addInput('daily')">+ Daily Goal</button>
                 <button class="add-btn" onclick="addInput('weekly')">+ Weekly Goal</button>
+                
 
 
             </div>
@@ -129,6 +139,8 @@
             <button onclick="toggleFocus()">FOCUS</button>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div id="weeklyDisplay" class="glass-panel"><h3>WEEKLY</h3></div>
+                <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
             </div>
 
             <div id="guideDisplay"></div>
