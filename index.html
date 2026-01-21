@@ -2,42 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Weekly Planner & Reset</title>
+    <title>Weekly Planner</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Weekly Planner: Week of Jan 18th</h1>
+    <h1 id="plannerTitle">Weekly Planner: Week --/52</h1>
 
     <div class="section">
-        <h3>Main Tasks</h3>
-        <label>Homework Assignments:</label><br>
-        <input type="text" id="homework" placeholder="Excel Module 1, etc."><br>
-        
-        <label>Cleaning Tasks:</label><br>
-        <input type="text" id="cleaning" placeholder="Vacuum, Sheets, etc."><br>
-        
-        <label>Side Project Goal:</label><br>
-        <input type="text" id="projectGoal" value="Create a functional web page"><br>
+        <h3>THINGS TO FINISH THIS WEEK:</h3>
+        <div id="taskContainer">
+            <input type="text" class="task-input" placeholder="Enter task...">
+        </div>
+        <button id="addTaskBtn">+ Add Input</button>
     </div>
 
     <div class="section">
-        <h3>Daily Reset & Sequence</h3>
-        <p><i>The End-of-Day and Morning sequences will be added to your output automatically.</i></p>
+        <button id="generateBtn">Generate Formatted TODO</button>
     </div>
-
-    <div class="section">
-        <h3>Today's Focus</h3>
-        <label>Tasks expected to be completed today:</label><br>
-        <input type="text" id="todayTasks" placeholder="Laundry, Room Clean, etc."><br>
-        
-        <label>Tasks Done:</label> <input type="number" id="doneCount" style="width: 40px;"> 
-        / Total: <input type="number" id="totalCount" style="width: 40px;">
-    </div>
-
-    <button id="generateBtn">Generate Formatted TODO</button>
 
     <hr>
-
     <textarea id="outputBox" rows="20" style="width: 100%; font-family: monospace;"></textarea>
 
     <script src="script.js"></script>

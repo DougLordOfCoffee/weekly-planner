@@ -1,56 +1,64 @@
-document.getElementById('generateBtn').addEventListener('click', function() {
-    // 1. Read all inputs
-    const homework = document.getElementById('homework').value;
-    const cleaning = document.getElementById('cleaning').value;
-    const project = document.getElementById('projectGoal').value;
-    const today = document.getElementById('todayTasks').value;
-    const done = document.getElementById('doneCount').value || "____";
-    const total = document.getElementById('totalCount').value || "____";
+// --- INITIALIZATION ---
+const taskContainer = document.getElementById('taskContainer');
+const addTaskBtn = document.getElementById('addTaskBtn');
+const generateBtn = document.getElementById('generateBtn');
 
-    // 2. Format into template string
-    const template = `WEEK OF: January 18th
-TARGET DEADLINE: Saturday night
+// Set the Title on Load
+window.onload = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const diff = now - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    const weekNum = Math.ceil(dayOfYear / 7);
+    
+    document.getElementById('plannerTitle').innerText = `Weekly Planner: Week ${weekNum}/52`;
+};
 
-================================
+// --- ADD INPUT LOGIC ---
+addTaskBtn.addEventListener('click', () => {
+    const newInput = document.createElement('input');
+    newInput.type = 'text';
+    newInput.className = 'task-input';
+    newInput.placeholder = 'Enter task...';
+    taskContainer.appendChild(newInput);
+});
+
+// --- GENERATE LOGIC ---
+generateBtn.addEventListener('click', () => {
+    const inputs = document.querySelectorAll('.task-input');
+    let taskListString = "";
+    let totalTasks = 0;
+    let completedTasks = 0; // In a simple text input, we'll assume they aren't done yet
+
+    inputs.forEach((input, index) => {
+        if (input.value.trim() !== "") {
+            totalTasks++;
+            taskListString += `[ ] ${index + 1}. ${input.value}\n`;
+        }
+    });
+
+    // Simple Calculation Logic
+    // For now, it shows 0/Total. Later we can add checkboxes to the UI to calc "Done".
+    const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    const template = `================================
 THINGS TO FINISH THIS WEEK
 ================================
-[ ] 1. College homework: ${homework}
-[ ] 2. Chapter 2 Reading Quiz (Status: NOT STARTED)
-[ ] 3. Laundry (Status: NOT STARTED)
-[ ] 4. Cleaning Tasks: ${cleaning}
-[ ] 5. Side project: ${project}
-
-================================
-RIGHT NOW (END-OF-DAY RESET)
-================================
-[ ] Shower
-[ ] Get clothes out for tomorrow
-[ ] Set out coffee stuff -(OR)- Fridge Monster
-[ ] Plates out of room/off desk
-[ ] Sleep
-
-================================
-NEXT-DAY SEQUENCE (DEFAULT)
-================================
-Morning: Wake up, Dress, Wash, Coffee/Monster
-Room reset: Plates out, Gather clothes, Start laundry
-Focus: Textbook Audio + (Minecraft OR Folding)
-Fallback: Work on Computer Information
-Time check: 7:20 AM Departure
+${taskListString}
 
 ================================
 EXPECTED OUTCOME
 ================================
-Tasks for today: ${today}
-
-That’s ${done} / ${total} tasks done
-≈ 80–90% of bullshit handled
+That’s ${completedTasks} / ${totalTasks} tasks done
+≈ ${percentage}% of bullshit handled
 
 ================================
 BACKUP PLAN
 ================================
-Saturday is the "Catch All" day. Clear everything then!`;
+If ANY TASKS don't get done Saturday morning:
+- Do it all on Saturday
+- Then you’re clear`;
 
-    // 3. Put result in output box
     document.getElementById('outputBox').value = template;
 });
