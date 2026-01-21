@@ -25,28 +25,32 @@ function sync() {
 
 // --- DASHBOARD TOGGLE ---
 function toggleView() {
-  const goingToDashboard = appData.view === "editor";
+  // 1. Determine direction
+  const isCurrentlyEditor = appData.view === "editor";
 
-  if (goingToDashboard) {
-    appData.weekly = collect('weeklyInputs');
-    appData.daily = collect('dailyInputs');
+  // 2. If leaving editor, collect all data
+  if (isCurrentlyEditor) {
+    appData.weekly = collect('weekly'); // Changed from 'weeklyInputs' to 'weekly' to match your updated collect()
+    appData.daily = collect('daily');
     appData.bg = document.getElementById('bgUrl').value;
     appData.shader = document.getElementById('shaderRange').value;
     appData.amTime = document.getElementById('amTime').value;
     appData.pmTime = document.getElementById('pmTime').value;
     appData.guideNight = document.getElementById('nightGuide').value;
     appData.guideMorning = document.getElementById('morningGuide').value;
-
-    sync();
-    renderView();
+    
+    renderView(); // Prepare the dashboard visuals
   }
 
-  appData.view = goingToDashboard ? "dashboard" : "editor";
+  // 3. Flip the state
+  appData.view = isCurrentlyEditor ? "dashboard" : "editor";
   sync();
 
-  document.getElementById('editor').classList.toggle('hidden', appData.view !== "editor");
-  document.getElementById('dashboard').classList.toggle('hidden', appData.view !== "dashboard");
-  document.getElementById('topBars').classList.toggle('hidden', appData.view !== "dashboard");
+  // 4. Update DOM visibility
+  const isDashboard = appData.view === "dashboard";
+  document.getElementById('editor').classList.toggle('hidden', isDashboard);
+  document.getElementById('dashboard').classList.toggle('hidden', !isDashboard);
+  document.getElementById('topBars').classList.toggle('hidden', !isDashboard);
 
   updateVisuals();
 }
