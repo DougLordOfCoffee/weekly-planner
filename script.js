@@ -3,6 +3,8 @@ let appData = {
   version: 1,
   weekly: [],
   daily: [],
+  guideNight: "",
+  guideMorning: "",
   amTime: "06:00",
   pmTime: "22:00",
   bg: "",
@@ -11,8 +13,10 @@ let appData = {
   lastDate: "",
   lastWeek: null,
   focusMode: false,
+  view: "editor",
   ...saved
 };
+
 
 function sync() {
   localStorage.setItem("voidData", JSON.stringify(appData));
@@ -30,6 +34,9 @@ function toggleView() {
     appData.shader = document.getElementById('shaderRange').value;
     appData.amTime = document.getElementById('amTime').value;
     appData.pmTime = document.getElementById('pmTime').value;
+    appData.guideNight = document.getElementById('nightGuide').value;
+    appData.guideMorning = document.getElementById('morningGuide').value;
+
     sync();
     renderView();
   }
@@ -82,6 +89,24 @@ function collect(id) {
 // --- RENDERING ---
 function renderView() {
   checkResets();
+
+  const guide = document.getElementById("guideDisplay");
+    guide.innerHTML = "";
+
+    if (appData.guideNight) {
+      const n = document.createElement("pre");
+        n.className = "guide-block";
+        n.textContent = appData.guideNight;
+        guide.appendChild(n);
+    }
+
+    if (appData.guideMorning) {
+        const m = document.createElement("pre");
+        m.className = "guide-block";
+        m.textContent = appData.guideMorning;
+        guide.appendChild(m);
+    }
+
 
   ["weekly", "daily"].forEach(type => {
     const cont = document.getElementById(type + "Display");
@@ -272,6 +297,9 @@ document.getElementById('bgUrl').value = appData.bg;
 document.getElementById('shaderRange').value = appData.shader;
 document.getElementById('amTime').value = appData.amTime;
 document.getElementById('pmTime').value = appData.pmTime;
+document.getElementById('nightGuide').value = appData.guideNight || "";
+document.getElementById('morningGuide').value = appData.guideMorning || "";
+
 updateVisuals();
 appData.unlocked.forEach(u => {
     const span = document.createElement('span');

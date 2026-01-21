@@ -101,6 +101,9 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                 <div id="weeklyInputs"><h3>WEEKLY</h3></div>
                 <div id="dailyInputs"><h3>DAILY</h3></div>
+                <button onclick="addInput('daily')">+ Add Daily Goal</button>
+                <button onclick="addInput('weekly')">+ Add Weekly Goal</button>
+
             </div>
             <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                 <div>
@@ -129,8 +132,18 @@
                 <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
             </div>
 
+            <div id="guideDisplay"></div>
+
+
+            <h3>Night Guide (End-of-Day)</h3>
+            <textarea id="nightGuide" rows="10" placeholder="Your nightly reset ritual..."></textarea>
+
+            <h3>Next-Day Guide</h3>
+            <textarea id="morningGuide" rows="14" placeholder="Your default next-day flow..."></textarea>
+
+
             <div class="glass-panel" style="margin-top:30px;">
-                <h3 style="margin-top:0;">UNLOCKED POTENTIAL</h3>
+                <h3 style="margin-top:0;">Achievements</h3>
                 <div id="achievementList" style="display:flex; gap:20px; min-height:50px;"></div>
             </div>
         </div>
