@@ -2,72 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Slayer's Planner</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Slayer's Planner Pro</title>
     <style>
+        :root {
+            --bg: #0f0f12;
+            --panel: #1a1a1f;
+            --accent: #7209b7;
+            --xp: #2ecc71;
+            --text: #e0e0e0;
+        }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
         .hidden { display: none !important; }
-        .bar-container { width: 100%; background: #333; height: 40px; border: 3px solid #111; margin-bottom: 15px; position: relative; }
-        #weekBar { height: 100%; background: linear-gradient(90deg, #7209b7, #3a0ca3); width: 0%; transition: width 0.5s; }
-        #xpBar { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); width: 0%; transition: width 0.3s; }
-        .bar-text { position: absolute; width: 100%; text-align: center; color: white; font-weight: 900; font-family: 'Courier New', monospace; line-height: 40px; top: 0; font-size: 1.4rem; text-shadow: 2px 2px #000; }
         
-        /* Toast Styles */
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
-        .toast { background: #333; color: #fff; padding: 12px 20px; margin-bottom: 10px; border-left: 5px solid #2ecc71; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out; font-family: sans-serif; }
+        /* Boss & XP Bars */
+        .bar-outer { width: 100%; background: #000; height: 30px; border-radius: 5px; border: 1px solid #333; position: relative; overflow: hidden; margin-bottom: 20px; }
+        #weekBar { background: linear-gradient(90deg, #480ca8, #7209b7); height: 100%; transition: 1s ease; }
+        #xpBar { background: linear-gradient(90deg, #1b4332, #2ecc71); height: 100%; transition: 0.3s ease; }
+        .bar-text { position: absolute; width: 100%; text-align: center; line-height: 30px; font-weight: bold; font-size: 0.9rem; letter-spacing: 1px; }
+
+        /* Containers */
+        .container { background: var(--panel); border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #2a2a32; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
-        .achievement-container { display: flex; gap: 10px; padding: 15px; background: #1a1a1a; border: 1px solid #444; border-radius: 8px; margin-top: 10px; }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        /* Inputs & UI */
+        input[type="text"], textarea, input[type="time"] { 
+            background: #000; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; margin: 5px 0;
+        }
+        button { 
+            background: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { filter: brightness(1.2); }
+        
+        /* Toast Notification */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; }
+        .toast { background: #2ecc71; color: black; padding: 12px 20px; border-radius: 8px; font-weight: bold; margin-top: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        
+        .task-row { background: #25252b; padding: 10px; border-radius: 6px; margin: 5px 0; display: flex; align-items: center; }
+        .sub-row { margin-left: 30px; opacity: 0.8; }
+        .achievement-slot { display: inline-block; font-size: 24px; margin-right: 10px; filter: grayscale(1); transition: 0.5s; }
+        .unlocked { filter: grayscale(0); transform: scale(1.2); }
     </style>
 </head>
 <body>
 
-    <div id="weekBarContainer" class="bar-container hidden">
+    <div id="weekBarContainer" class="bar-outer">
         <div id="weekBar"></div>
-        <div class="bar-text" id="weekBarText">DAY -- / 365</div>
+        <div class="bar-text" id="weekBarText">SYSTEM LOADING...</div>
     </div>
 
     <div id="toast-container"></div>
 
-    <div id="editor">
-        <h2>Planner Editor</h2>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div>
-                <h3>WEEKLY TASKS:</h3>
-                <div id="weeklyTaskList"></div>
-                <button onclick="addTask('weekly')">+ Weekly Task</button>
+    <div id="editor" class="container">
+        <h2>System Configuration</h2>
+        <div class="grid">
+            <div id="weeklyEditor">
+                <h3>WEEKLY TARGETS</h3>
+                <div id="weeklyInputs"></div>
+                <button onclick="addInput('weekly')">+ Weekly Task</button>
             </div>
-            <div>
-                <h3>DAILY TASKS:</h3>
-                <div id="dailyTaskList"></div>
-                <button onclick="addTask('daily')">+ Daily Task</button>
+            <div id="dailyEditor">
+                <h3>DAILY REPEATS</h3>
+                <div id="dailyInputs"></div>
+                <button onclick="addInput('daily')">+ Daily Task</button>
             </div>
         </div>
-        
-        <h3>Reminders & Sequences:</h3>
-        AM: <input type="time" id="amTime" value="06:00"> 
-        PM: <input type="time" id="pmTime" value="22:00">
-        <textarea id="seqInput" rows="5" style="width:100%; margin-top:10px;">MORNING: ...&#10;NIGHT: ...</textarea>
-        <button id="toggleBtn" style="margin-top:20px; width:100%; height: 50px; font-weight:bold;">ENTER DASHBOARD</button>
+        <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+        <div class="grid">
+            <textarea id="seqInput" placeholder="Enter Sequences Here..."></textarea>
+            <div>
+                AM Alarm: <input type="time" id="amTime"><br>
+                PM Alarm: <input type="time" id="pmTime">
+            </div>
+        </div>
+        <button id="saveBtn" style="width:100%; margin-top:20px; background:var(--xp); color:black;">SAVE & ENTER DASHBOARD</button>
     </div>
 
-    <div id="viewMode" class="hidden">
-        <button onclick="toggleView()">BACK TO EDITOR</button>
-        <h3>TOTAL PROGRESS (XP)</h3>
-        <div class="bar-container">
+    <div id="viewMode" class="container hidden">
+        <div style="display:flex; justify-content: space-between;">
+            <button onclick="exitDashboard()">⚙ EDITOR</button>
+            <h2 style="margin:0;">XP PROGRESS</h2>
+        </div>
+        <div class="bar-outer" style="margin-top:10px;">
             <div id="xpBar"></div>
             <div class="bar-text" id="xpText">XP: 0%</div>
         </div>
         
-        <div id="dashboardContent" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <div id="weeklyDisplay"></div>
-            <div id="dailyDisplay"></div>
+        <div class="grid">
+            <div><h3>WEEKLY</h3><div id="weeklyDisplay"></div></div>
+            <div><h3>DAILY</h3><div id="dailyDisplay"></div></div>
         </div>
 
         <h3>SEQUENCES</h3>
-        <div id="sequenceDisplay" style="background:#eee; padding:15px; white-space:pre-wrap;"></div>
-
-        <h3>ACHIEVEMENTS</h3>
-        <div id="achievementList" class="achievement-container"></div>
+        <pre id="seqDisplay" style="background:#000; padding:15px; border-radius:8px;"></pre>
+        
+        <div id="achievements" class="container" style="margin-top:20px;">
+            <h3>ACHIEVEMENTS</h3>
+            <span class="achievement-slot" id="ach-1" title="First Task Done">🌱</span>
+            <span class="achievement-slot" id="ach-2" title="50% XP Reached">🌗</span>
+            <span class="achievement-slot" id="ach-3" title="Level Complete">👑</span>
+        </div>
     </div>
 
     <script src="script.js"></script>
