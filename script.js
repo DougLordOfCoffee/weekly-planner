@@ -1,29 +1,27 @@
-// --- STATE MANAGEMENT ---
 let isMinimized = false;
-const tasks = [];
 
 // --- WEEK CALCULATION ---
 const now = new Date();
 const start = new Date(now.getFullYear(), 0, 1);
 const weekNum = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
-document.getElementById('plannerTitle').innerText = `Weekly Planner: Week ${weekNum}/52`;
+const weekPercent = (weekNum / 52) * 100;
 
 // --- DOM ELEMENTS ---
 const taskList = document.getElementById('taskList');
 const editor = document.getElementById('editor');
 const viewMode = document.getElementById('viewMode');
 const toggleBtn = document.getElementById('toggleBtn');
-const interactiveOutput = document.getElementById('interactiveOutput');
+const weekBarContainer = document.getElementById('weekBarContainer');
+const weekBar = document.getElementById('weekBar');
+const weekBarText = document.getElementById('weekBarText');
 
-// --- ADD TASK LOGIC ---
+// --- ADD TASK (EDITOR) ---
 document.getElementById('mainTaskBtn').addEventListener('click', () => {
-    const id = Date.now();
     const taskDiv = document.createElement('div');
     taskDiv.className = 'task-group';
-    taskDiv.dataset.id = id;
     taskDiv.innerHTML = `
         <div style="margin-top:10px;">
-            <input type="text" class="main-input" placeholder="Main Task (e.g. Laundry)">
+            <input type="text" class="main-input" placeholder="Main Task">
             <button onclick="addSub(this)">+ Sub</button>
             <div class="sub-container" style="margin-left: 30px;"></div>
         </div>
@@ -34,64 +32,101 @@ document.getElementById('mainTaskBtn').addEventListener('click', () => {
 function addSub(btn) {
     const subContainer = btn.parentElement.querySelector('.sub-container');
     const subDiv = document.createElement('div');
-    subDiv.innerHTML = `<input type="text" class="sub-input" placeholder="Subtask" style="margin-top:5px;">`;
+    subDiv.innerHTML = `<input type="text" class="sub-input" placeholder="Subtask">`;
     subContainer.appendChild(subDiv);
 }
 
-// --- MINIMIZE/TOGGLE LOGIC ---
+// --- TOGGLE & RENDER ---
 toggleBtn.addEventListener('click', () => {
     isMinimized = !isMinimized;
     if (isMinimized) {
-        renderInteractivePlan();
+        renderView();
         editor.classList.add('hidden');
         viewMode.classList.remove('hidden');
+        weekBarContainer.classList.remove('hidden');
+        document.getElementById('plannerTitle').classList.add('hidden');
+        
+        // Update Boss Bar
+        weekBar.style.width = weekPercent + "%";
+        weekBarText.innerText = `WEEK ${weekNum} / 52`;
         toggleBtn.innerText = "Expand Editor";
     } else {
         editor.classList.remove('hidden');
         viewMode.classList.add('hidden');
+        weekBarContainer.classList.add('hidden');
+        document.getElementById('plannerTitle').classList.remove('hidden');
         toggleBtn.innerText = "Minimize Editor";
     }
 });
 
-// --- RENDER INTERACTIVE PLAN ---
-function renderInteractivePlan() {
-    let html = `<strong>TARGET DEADLINE: Saturday Night</strong>\n\n`;
-    html += `================================\nTHINGS TO FINISH THIS WEEK\n================================\n`;
+function renderView() {
+    const output = document.getElementById('interactiveOutput');
+    const seqDisplay = document.getElementById('sequenceDisplay');
+    output.innerHTML = '';
+    
+    // Display Sequences (No checkboxes)
+    seqDisplay.innerText = document.getElementById('seqInput').value;
 
     const groups = document.querySelectorAll('.task-group');
-    groups.forEach(group => {
+    groups.forEach((group, gIdx) => {
         const mainVal = group.querySelector('.main-input').value;
-        if (mainVal) {
-            html += `<div><input type="checkbox"> ${mainVal}</div>`;
-            const subs = group.querySelectorAll('.sub-input');
-            subs.forEach(sub => {
-                if (sub.value) {
-                    html += `<div style="margin-left:40px;"><input type="checkbox"> - ${sub.value}</div>`;
-                }
+        if (!mainVal) return;
+
+        // Create Main Task Row
+        const mainRow = document.createElement('div');
+        mainRow.className = 'task-row';
+        mainRow.innerHTML = `<input type="checkbox" class="prog-check main-c" data-group="${gIdx}"> <strong>${mainVal}</strong>`;
+        output.appendChild(mainRow);
+
+        // Create Subtask Rows
+        const subs = group.querySelectorAll('.sub-input');
+        subs.forEach(sub => {
+            if (sub.value) {
+                const subRow = document.createElement('div');
+                subRow.className = 'task-row';
+                subRow.style.marginLeft = "40px";
+                subRow.innerHTML = `<input type="checkbox" class="prog-check sub-c" data-group="${gIdx}"> - ${sub.value}`;
+                output.appendChild(subRow);
+            }
+        });
+    });
+
+    // Attach listeners to all new checkboxes for the XP bar
+    document.querySelectorAll('.prog-check').forEach(cb => {
+        cb.addEventListener('change', updateXP);
+    });
+    updateXP();
+}
+
+// --- XP CALCULATION LOGIC ---
+function updateXP() {
+    const groups = document.querySelectorAll('.task-group');
+    let totalScore = 0;
+    let earnedScore = 0;
+
+    // We check the checkboxes generated in the VIEW MODE
+    const viewGroups = new Set();
+    document.querySelectorAll('.prog-check').forEach(cb => viewGroups.add(cb.dataset.group));
+
+    viewGroups.forEach(gIdx => {
+        const mainCheck = document.querySelector(`.main-c[data-group="${gIdx}"]`);
+        const subChecks = document.querySelectorAll(`.sub-c[data-group="${gIdx}"]`);
+        
+        totalScore += 1; // Each group is worth 1 point
+
+        if (subChecks.length === 0) {
+            if (mainCheck.checked) earnedScore += 1;
+        } else {
+            // If there are subs, the "1 point" is split between the main and its subs
+            const weight = 1 / (subChecks.length + 1); 
+            if (mainCheck.checked) earnedScore += weight;
+            subChecks.forEach(sc => {
+                if (sc.checked) earnedScore += weight;
             });
         }
     });
 
-    html += `\n================================\nRIGHT NOW (END-OF-DAY RESET)\n================================\n`;
-    const dailyItems = ["Shower", "Get clothes out", "Coffee/Monster Setup", "Plates out of room", "Sleep"];
-    dailyItems.forEach(item => html += `<div><input type="checkbox"> ${item}</div>`);
-
-    html += `\n================================\nNEXT-DAY SEQUENCE (DEFAULT)\n================================\n`;
-    html += `Morning: Wake up, Dress, Wash, Coffee\nRoom reset: Plates out, Laundry start\nFocus: Textbook Audio + (Minecraft/Cleaning)\nFallback: Computer Information\n\n`;
-    
-    html += `================================\nBACKUP PLAN\n================================\n`;
-    html += `If tasks fail: Do it all Saturday morning.\nClear the slate.`;
-
-    interactiveOutput.innerHTML = html;
+    const percent = totalScore > 0 ? Math.round((earnedScore / totalScore) * 100) : 0;
+    document.getElementById('xpBar').style.width = percent + "%";
+    document.getElementById('xpText').innerText = `XP: ${percent}%`;
 }
-
-// --- DOWNLOAD LOGIC ---
-document.getElementById('downloadBtn').addEventListener('click', () => {
-    const text = interactiveOutput.innerText;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const anchor = document.createElement('a');
-    anchor.download = `Week_${weekNum}_Plan.txt`;
-    anchor.href = (window.webkitURL || window.URL).createObjectURL(blob);
-    anchor.dataset.downloadurl = ['text/plain', anchor.download, anchor.href].join(':');
-    anchor.click();
-});

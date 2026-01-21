@@ -5,35 +5,63 @@
     <title>Weekly Planner Pro</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Essential layout styles to handle minimizing */
         .hidden { display: none !important; }
-        .interactive-list { font-family: monospace; white-space: pre-wrap; line-height: 1.6; }
-        .interactive-list input[type="checkbox"] { margin-right: 10px; cursor: pointer; }
-        #editor { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
-        #viewMode { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px dashed #999; }
+        .bar-container { width: 100%; background: #333; height: 25px; border: 2px solid #000; margin-bottom: 10px; position: relative; }
+        #weekBar { height: 100%; background: #8e44ad; width: 0%; transition: width 0.5s; }
+        #xpBar { height: 100%; background: #27ae60; width: 0%; transition: width 0.3s; }
+        .bar-text { position: absolute; width: 100%; text-align: center; color: white; font-weight: bold; font-family: monospace; line-height: 25px; top: 0; }
+        .sequence-box { background: #eee; padding: 10px; border-left: 5px solid #3498db; white-space: pre-wrap; margin-bottom: 20px; }
+        .interactive-list { font-family: monospace; }
+        .task-row { margin: 5px 0; }
     </style>
 </head>
 <body>
 
-    <h1 id="plannerTitle">Weekly Planner: Week --/52</h1>
+    <div id="weekBarContainer" class="bar-container hidden">
+        <div id="weekBar"></div>
+        <div class="bar-text" id="weekBarText">WEEK --/52</div>
+    </div>
+
+    <h1 id="plannerTitle">Weekly Planner</h1>
     
     <div id="controls">
         <button id="toggleBtn">Minimize Editor</button>
-        <button id="generateBtn">Update/Refresh Plan</button>
     </div>
 
     <hr>
 
     <div id="editor">
-        <h3>THINGS TO FINISH THIS WEEK:</h3>
+        <h3>TASK EDITOR:</h3>
         <div id="taskList"></div>
         <button id="mainTaskBtn">+ Add Main Task</button>
+        
+        <h3>EDIT SEQUENCES:</h3>
+        <textarea id="seqInput" rows="10" style="width:100%">
+MORNING SEQUENCE:
+- Wake up/Dress
+- Coffee/Monster
+- Start Laundry
+
+END-OF-DAY RESET:
+- Shower
+- Clothes for tomorrow
+- Plates out
+- Sleep
+        </textarea>
     </div>
 
     <div id="viewMode" class="hidden">
-        <h3>Current Plan</h3>
+        <h3>THINGS TO FINISH THIS WEEK</h3>
+        <div class="bar-container">
+            <div id="xpBar"></div>
+            <div class="bar-text" id="xpText">XP: 0%</div>
+        </div>
+        
         <div id="interactiveOutput" class="interactive-list"></div>
-        <br>
+        
+        <h3>SEQUENCES</h3>
+        <div id="sequenceDisplay" class="sequence-box"></div>
+        
         <button id="downloadBtn">Download .txt</button>
     </div>
 
