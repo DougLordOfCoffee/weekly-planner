@@ -78,17 +78,30 @@ function createSubIn(val="") {
     return i;
 }
 
-function collect(id) {
-    return Array.from(document.getElementById(id).children).filter(g => g.querySelector('.m-in')).map(g => ({
-        val: g.querySelector('.m-in').value,
-        done: false,
-        subs: Array.from(g.querySelectorAll('.s-in')).map(s => ({val: s.value, done: false}))
-    }));
+function collect(type) {
+    const id = type + 'Inputs';
+    return Array.from(document.getElementById(id).children).filter(g => g.querySelector('.m-in')).map((g, index) => {
+        const val = g.querySelector('.m-in').value;
+        // Try to find if this task already existed to preserve 'done' status
+        const existing = appData[type][index];
+        const isDone = (existing && existing.val === val) ? existing.done : false;
+
+        return {
+            val: val,
+            done: isDone,
+            subs: Array.from(g.querySelectorAll('.s-in')).map((s, si) => {
+                const existingSub = (existing && existing.subs[si]) ? existing.subs[si] : null;
+                return {
+                    val: s.value,
+                    done: (existingSub && existingSub.val === s.value) ? existingSub.done : false
+                };
+            })
+        };
+    });
 }
 
 // --- RENDERING ---
 function renderView() {
-  checkResets();
 
   const guide = document.getElementById("guideDisplay");
     guide.innerHTML = "";
@@ -129,9 +142,9 @@ function renderView() {
 
       row.append(cb, label);
 
-      if (appData.focusMode && !t.done) {
-        row.classList.add("focus-hide");
-      }
+     if (appData.focusMode && t.done) {
+         row.classList.add("focus-hide");
+     }
 
       cont.appendChild(row);
 
@@ -315,4 +328,5 @@ appData.unlocked.forEach(u => {
     document.getElementById('achievementList').appendChild(span);
 });
 
+checkResets(); 
 renderView();
