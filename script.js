@@ -14,24 +14,34 @@ let appData = {
   ...saved
 };
 
+function sync() {
+  localStorage.setItem("voidData", JSON.stringify(appData));
+}
+
 
 // --- DASHBOARD TOGGLE ---
 function toggleView() {
-    const isEdit = !document.getElementById('editor').classList.contains('hidden');
-    if (isEdit) {
-        appData.weekly = collect('weeklyInputs');
-        appData.daily = collect('dailyInputs');
-        appData.bg = document.getElementById('bgUrl').value;
-        appData.shader = document.getElementById('shaderRange').value;
-        appData.amTime = document.getElementById('amTime').value;
-        appData.pmTime = document.getElementById('pmTime').value;
-        sync();
-        renderView();
-    }
-    document.getElementById('editor').classList.toggle('hidden');
-    document.getElementById('dashboard').classList.toggle('hidden');
-    document.getElementById('topBars').classList.toggle('hidden');
-    updateVisuals();
+  const goingToDashboard = appData.view === "editor";
+
+  if (goingToDashboard) {
+    appData.weekly = collect('weeklyInputs');
+    appData.daily = collect('dailyInputs');
+    appData.bg = document.getElementById('bgUrl').value;
+    appData.shader = document.getElementById('shaderRange').value;
+    appData.amTime = document.getElementById('amTime').value;
+    appData.pmTime = document.getElementById('pmTime').value;
+    sync();
+    renderView();
+  }
+
+  appData.view = goingToDashboard ? "dashboard" : "editor";
+  sync();
+
+  document.getElementById('editor').classList.toggle('hidden', appData.view !== "editor");
+  document.getElementById('dashboard').classList.toggle('hidden', appData.view !== "dashboard");
+  document.getElementById('topBars').classList.toggle('hidden', appData.view !== "dashboard");
+
+  updateVisuals();
 }
 document.getElementById('saveBtn').onclick = toggleView;
 
