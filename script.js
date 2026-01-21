@@ -169,16 +169,22 @@ function upd(type, i, si, val) {
   const task = appData[type][i];
 
   if (si === -1) {
+    // Main checkbox ONLY toggles main done state
     task.done = val;
-    task.subs.forEach(s => s.done = val);
   } else {
+    // Subtask checkbox
     task.subs[si].done = val;
+
+    // Auto-mark main as done ONLY if all subs done
     task.done = task.subs.every(s => s.done);
   }
 
   sync();
   updateXP();
 }
+
+
+
 
 
 // --- XP & ACHIEVEMENTS ---
@@ -200,6 +206,7 @@ function updateXP() {
             } else {
             earned += weight * (doneSubs / subs);
             }
+
         });
       });
 

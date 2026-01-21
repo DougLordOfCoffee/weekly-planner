@@ -1,3 +1,9 @@
+
+:root {
+  --accent: #4cc9f0;
+  --xp: #80ffdb;
+}
+    
 .hidden { display: none; }
 
 .flex-between {
@@ -49,3 +55,63 @@
   white-space: pre-wrap;
   font-size: 0.9rem;
 }
+
+.m-in,
+.s-in,
+textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.s-in {
+  margin-top: 6px;
+  opacity: 0.9;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+
+button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s ease;
+}
+
+.add-btn {
+  background: rgba(0,0,0,0.6);
+  border: 1px dashed var(--glass-border);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.guide-block {
+  background: rgba(0,0,0,0.35);
+  padding: 16px;
+  margin: 25px 0;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent);
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+

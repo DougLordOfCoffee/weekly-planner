@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Slayer's Planner: Void Edition</title>
+    <title>Weekly Planner</title>
     <link rel="stylesheet" href="style.css">
     <style>
         :root {
@@ -97,12 +97,13 @@
         </div>
 
         <div id="editor" class="glass-panel">
-            <h2 style="margin-top:0; color:var(--accent);">VOID CONFIG</h2>
+            <h2 style="margin-top:0; color:var(--accent);">Weekly Planner</h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                 <div id="weeklyInputs"><h3>WEEKLY</h3></div>
                 <div id="dailyInputs"><h3>DAILY</h3></div>
-                <button onclick="addInput('daily')">+ Add Daily Goal</button>
-                <button onclick="addInput('weekly')">+ Add Weekly Goal</button>
+                <button class="add-btn" onclick="addInput('daily')">+ Daily Goal</button>
+                <button class="add-btn" onclick="addInput('weekly')">+ Weekly Goal</button>
+
 
             </div>
             <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
@@ -116,7 +117,7 @@
                     Morning: <input type="time" id="amTime"> Night: <input type="time" id="pmTime">
                 </div>
             </div>
-            <button id="saveBtn" style="width:100%; margin-top:25px; padding:15px; background:var(--xp); border:none; border-radius:8px; font-weight:bold; cursor:pointer;">INITIALIZE LINK</button>
+            <button id="saveBtn" style="width:100%; margin-top:25px; padding:15px; background:var(--xp); border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SAVE & VIEW</button>
         </div>
 
         <div id="dashboard" class="hidden">
@@ -133,13 +134,6 @@
             </div>
 
             <div id="guideDisplay"></div>
-
-
-            <h3>Night Guide (End-of-Day)</h3>
-            <textarea id="nightGuide" rows="10" placeholder="Your nightly reset ritual..."></textarea>
-
-            <h3>Next-Day Guide</h3>
-            <textarea id="morningGuide" rows="14" placeholder="Your default next-day flow..."></textarea>
 
 
             <div class="glass-panel" style="margin-top:30px;">
