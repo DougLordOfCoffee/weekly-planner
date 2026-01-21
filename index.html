@@ -2,23 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Weekly Planner</title>
+    <title>Weekly Planner Pro</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Essential layout styles to handle minimizing */
+        .hidden { display: none !important; }
+        .interactive-list { font-family: monospace; white-space: pre-wrap; line-height: 1.6; }
+        .interactive-list input[type="checkbox"] { margin-right: 10px; cursor: pointer; }
+        #editor { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        #viewMode { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px dashed #999; }
+    </style>
 </head>
 <body>
-    <h1 id="plannerTitle">Weekly Planner: Week --/52</h1>
 
-    <div class="section">
+    <h1 id="plannerTitle">Weekly Planner: Week --/52</h1>
+    
+    <div id="controls">
+        <button id="toggleBtn">Minimize Editor</button>
+        <button id="generateBtn">Update/Refresh Plan</button>
+    </div>
+
+    <hr>
+
+    <div id="editor">
         <h3>THINGS TO FINISH THIS WEEK:</h3>
-        <div id="taskList">
-            </div>
+        <div id="taskList"></div>
         <button id="mainTaskBtn">+ Add Main Task</button>
     </div>
 
-    <button id="generateBtn" style="margin-top: 20px; font-weight: bold;">Generate Formatted TODO</button>
-
-    <hr>
-    <textarea id="outputBox" rows="25" style="width: 100%; font-family: monospace;"></textarea>
+    <div id="viewMode" class="hidden">
+        <h3>Current Plan</h3>
+        <div id="interactiveOutput" class="interactive-list"></div>
+        <br>
+        <button id="downloadBtn">Download .txt</button>
+    </div>
 
     <script src="script.js"></script>
 </body>

@@ -1,18 +1,28 @@
+// --- STATE MANAGEMENT ---
+let isMinimized = false;
+const tasks = [];
+
 // --- WEEK CALCULATION ---
 const now = new Date();
 const start = new Date(now.getFullYear(), 0, 1);
 const weekNum = Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
 document.getElementById('plannerTitle').innerText = `Weekly Planner: Week ${weekNum}/52`;
 
+// --- DOM ELEMENTS ---
 const taskList = document.getElementById('taskList');
+const editor = document.getElementById('editor');
+const viewMode = document.getElementById('viewMode');
+const toggleBtn = document.getElementById('toggleBtn');
+const interactiveOutput = document.getElementById('interactiveOutput');
 
-// --- ADD MAIN TASK ---
+// --- ADD TASK LOGIC ---
 document.getElementById('mainTaskBtn').addEventListener('click', () => {
+    const id = Date.now();
     const taskDiv = document.createElement('div');
     taskDiv.className = 'task-group';
+    taskDiv.dataset.id = id;
     taskDiv.innerHTML = `
         <div style="margin-top:10px;">
-            <input type="checkbox" class="main-check">
             <input type="text" class="main-input" placeholder="Main Task (e.g. Laundry)">
             <button onclick="addSub(this)">+ Sub</button>
             <div class="sub-container" style="margin-left: 30px;"></div>
@@ -21,79 +31,67 @@ document.getElementById('mainTaskBtn').addEventListener('click', () => {
     taskList.appendChild(taskDiv);
 });
 
-// --- ADD SUBTASK ---
 function addSub(btn) {
     const subContainer = btn.parentElement.querySelector('.sub-container');
     const subDiv = document.createElement('div');
-    subDiv.innerHTML = `
-        <input type="checkbox" class="sub-check">
-        <input type="text" class="sub-input" placeholder="Subtask">
-    `;
+    subDiv.innerHTML = `<input type="text" class="sub-input" placeholder="Subtask" style="margin-top:5px;">`;
     subContainer.appendChild(subDiv);
 }
 
-// --- GENERATE LOGIC ---
-document.getElementById('generateBtn').addEventListener('click', () => {
-    let output = `WEEK OF: ${now.toLocaleDateString()}\n`;
-    output += `WEEK PROGRESS: ${weekNum}/52\n\n`;
-    output += `================================\nTHINGS TO FINISH THIS WEEK\n================================\n`;
+// --- MINIMIZE/TOGGLE LOGIC ---
+toggleBtn.addEventListener('click', () => {
+    isMinimized = !isMinimized;
+    if (isMinimized) {
+        renderInteractivePlan();
+        editor.classList.add('hidden');
+        viewMode.classList.remove('hidden');
+        toggleBtn.innerText = "Expand Editor";
+    } else {
+        editor.classList.remove('hidden');
+        viewMode.classList.add('hidden');
+        toggleBtn.innerText = "Minimize Editor";
+    }
+});
 
-    const mainTasks = document.querySelectorAll('.task-group');
-    let total = 0;
-    let done = 0;
+// --- RENDER INTERACTIVE PLAN ---
+function renderInteractivePlan() {
+    let html = `<strong>TARGET DEADLINE: Saturday Night</strong>\n\n`;
+    html += `================================\nTHINGS TO FINISH THIS WEEK\n================================\n`;
 
-    mainTasks.forEach((group) => {
-        const mainInp = group.querySelector('.main-input').value;
-        const mainCheck = group.querySelector('.main-check').checked;
-        
-        if (mainInp) {
-            total++;
-            if (mainCheck) done++;
-            output += `[${mainCheck ? 'X' : ' '}] ${mainInp}\n`;
-
-            // Handle Subtasks
-            const subs = group.querySelectorAll('.sub-container div');
+    const groups = document.querySelectorAll('.task-group');
+    groups.forEach(group => {
+        const mainVal = group.querySelector('.main-input').value;
+        if (mainVal) {
+            html += `<div><input type="checkbox"> ${mainVal}</div>`;
+            const subs = group.querySelectorAll('.sub-input');
             subs.forEach(sub => {
-                const subInp = sub.querySelector('.sub-input').value;
-                const subCheck = sub.querySelector('.sub-check').checked;
-                if (subInp) {
-                    output += `    - [${subCheck ? 'X' : ' '}] ${subInp}\n`;
+                if (sub.value) {
+                    html += `<div style="margin-left:40px;"><input type="checkbox"> - ${sub.value}</div>`;
                 }
             });
         }
     });
 
-    // Add back the Hardcoded Sequences
-    output += `
-================================
-RIGHT NOW (END-OF-DAY RESET)
-================================
-[ ] Shower
-[ ] Get clothes out for tomorrow
-[ ] Set out coffee stuff -(OR)- Fridge Monster
-[ ] Plates out of room/off desk
-[ ] Sleep
+    html += `\n================================\nRIGHT NOW (END-OF-DAY RESET)\n================================\n`;
+    const dailyItems = ["Shower", "Get clothes out", "Coffee/Monster Setup", "Plates out of room", "Sleep"];
+    dailyItems.forEach(item => html += `<div><input type="checkbox"> ${item}</div>`);
 
-================================
-NEXT-DAY SEQUENCE (DEFAULT)
-================================
-Morning: Wake up, Dress, Wash, Coffee/Monster
-Room reset: Plates out, Gather clothes, Start laundry
-Focus: Textbook Audio + (Minecraft OR Folding)
-Fallback: Work on Computer Information
+    html += `\n================================\nNEXT-DAY SEQUENCE (DEFAULT)\n================================\n`;
+    html += `Morning: Wake up, Dress, Wash, Coffee\nRoom reset: Plates out, Laundry start\nFocus: Textbook Audio + (Minecraft/Cleaning)\nFallback: Computer Information\n\n`;
+    
+    html += `================================\nBACKUP PLAN\n================================\n`;
+    html += `If tasks fail: Do it all Saturday morning.\nClear the slate.`;
 
-================================
-EXPECTED OUTCOME
-================================
-That’s ${done} / ${total} tasks done
-≈ ${total > 0 ? Math.round((done/total)*100) : 0}% of bullshit handled
+    interactiveOutput.innerHTML = html;
+}
 
-================================
-BACKUP PLAN
-================================
-If ANY TASKS don't get done Saturday:
-- Do it all on Saturday morning.
-- Then you’re clear.`;
-
-    document.getElementById('outputBox').value = output;
+// --- DOWNLOAD LOGIC ---
+document.getElementById('downloadBtn').addEventListener('click', () => {
+    const text = interactiveOutput.innerText;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const anchor = document.createElement('a');
+    anchor.download = `Week_${weekNum}_Plan.txt`;
+    anchor.href = (window.webkitURL || window.URL).createObjectURL(blob);
+    anchor.dataset.downloadurl = ['text/plain', anchor.download, anchor.href].join(':');
+    anchor.click();
 });
