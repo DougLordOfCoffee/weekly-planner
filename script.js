@@ -1,179 +1,165 @@
-// --- DATA STRUCTURE ---
 let appData = JSON.parse(localStorage.getItem('slayerData')) || {
-    weekly: [],
-    daily: [],
-    seq: "MORNING:\n- Wake up\n- Coffee\n\nNIGHT:\n- Shower\n- Reset",
-    amTime: "06:00",
-    pmTime: "22:00",
-    lastLogin: new Date().toDateString(),
-    unlockedAch: []
+    weekly: [], daily: [], amTime: "06:00", pmTime: "22:00",
+    bg: "", shader: 0.7, unlocked: [], lastLogin: ""
 };
 
-// --- CORE FUNCTIONS ---
-function save() {
-    localStorage.setItem('slayerData', JSON.stringify(appData));
+// --- ALARM ENGINE ---
+let lastNotified = "";
+function checkAlarms() {
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+    
+    if ((time === appData.amTime || time === appData.pmTime) && lastNotified !== time) {
+        lastNotified = time;
+        showToast(time === appData.amTime ? "☀️ WAKE UP: Morning Routine!" : "🌙 RESET: Night Sequence!");
+        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(()=>{});
+    }
+}
+setInterval(checkAlarms, 1000);
+
+// --- VISUALS ---
+function updateVisuals() {
+    document.getElementById('bg-layer').style.backgroundImage = `url(${appData.bg})`;
+    document.getElementById('shader-layer').style.background = `rgba(0,0,0,${appData.shader})`;
 }
 
-function addInput(type, val = "", subs = []) {
-    const container = document.getElementById(type + 'Inputs');
+// --- TASK LOGIC ---
+function addInput(type, val="", subs=[]) {
     const div = document.createElement('div');
-    div.className = 'task-input-group';
-    div.innerHTML = `
-        <input type="text" class="m-in" value="${val}" placeholder="Task Name">
-        <button onclick="addSubInput(this)">+S</button>
-        <div class="s-cont" style="margin-left:20px"></div>
-    `;
-    container.appendChild(div);
-    subs.forEach(s => addSubInput(div.querySelector('button'), s.val, s.done));
+    div.className = 'group';
+    div.innerHTML = `<input type="text" class="m-in" value="${val}" placeholder="${type} task">
+                     <button onclick="this.nextElementSibling.appendChild(Object.assign(document.createElement('input'),{className:'s-in'}))">+S</button>
+                     <div class="s-cont"></div>`;
+    document.getElementById(type+'Inputs').appendChild(div);
+    subs.forEach(s => {
+        const si = Object.assign(document.createElement('input'), {className:'s-in', value:s.val});
+        div.querySelector('.s-cont').appendChild(si);
+    });
 }
 
-function addSubInput(btn, val = "") {
-    const inp = document.createElement('input');
-    inp.type = "text";
-    inp.className = "s-in";
-    inp.value = val;
-    btn.parentElement.querySelector('.s-cont').appendChild(inp);
+function exitDashboard() {
+    document.getElementById('editor').classList.remove('hidden');
+    document.getElementById('viewMode').classList.add('hidden');
+    document.getElementById('bars').classList.add('hidden');
 }
 
-// --- RELIABLE RESET ---
-function checkDateResets() {
-    const today = new Date().toDateString();
-    if (appData.lastLogin !== today) {
-        // Daily Reset: Uncheck all daily tasks
-        appData.daily.forEach(t => {
-            t.done = false;
-            t.subs.forEach(s => s.done = false);
-        });
-        showToast("☀️ New Day: Daily Tasks Reset!");
-        appData.lastLogin = today;
-        save();
-    }
-    // Check for Weekly Reset (Monday)
-    const dayName = new Date().toLocaleDateString('en-US', {weekday: 'long'});
-    if (dayName === "Monday" && localStorage.getItem('lastWeekReset') !== today) {
-        appData.weekly.forEach(t => { t.done = false; t.subs.forEach(s => s.done = false); });
-        localStorage.setItem('lastWeekReset', today);
-        showToast("📅 Monday: Weekly Tasks Reset!");
-        save();
-    }
-}
-
-// --- DASHBOARD LOGIC ---
-document.getElementById('saveBtn').addEventListener('click', () => {
-    // Collect all data from Editor
-    appData.weekly = collectTasks('weeklyInputs');
-    appData.daily = collectTasks('dailyInputs');
-    appData.seq = document.getElementById('seqInput').value;
+document.getElementById('saveBtn').onclick = () => {
+    appData.weekly = collect('weeklyInputs');
+    appData.daily = collect('dailyInputs');
+    appData.bg = document.getElementById('bgUrl').value;
+    appData.shader = document.getElementById('shaderRange').value;
     appData.amTime = document.getElementById('amTime').value;
     appData.pmTime = document.getElementById('pmTime').value;
-    save();
+    localStorage.setItem('slayerData', JSON.stringify(appData));
+    updateVisuals();
     enterDashboard();
-});
+};
 
-function collectTasks(id) {
-    return Array.from(document.getElementById(id).children).map(group => ({
-        val: group.querySelector('.m-in').value,
-        done: false,
-        subs: Array.from(group.querySelectorAll('.s-in')).map(si => ({ val: si.value, done: false }))
+function collect(id) {
+    return Array.from(document.getElementById(id).children).map(g => ({
+        val: g.querySelector('.m-in').value,
+        subs: Array.from(g.querySelectorAll('.s-in')).map(s => ({val: s.value, done: false})),
+        done: false
     }));
 }
 
 function enterDashboard() {
     document.getElementById('editor').classList.add('hidden');
     document.getElementById('viewMode').classList.remove('hidden');
-    document.getElementById('weekBarContainer').classList.remove('hidden');
-    checkDateResets();
-    renderTasks();
+    document.getElementById('bars').classList.remove('hidden');
+    render();
 }
 
-function renderTasks() {
-    renderList('weekly');
-    renderList('daily');
-    document.getElementById('seqDisplay').innerText = appData.seq;
-    updateXP();
-}
-
-function renderList(type) {
-    const cont = document.getElementById(type + 'Display');
-    cont.innerHTML = '';
-    appData[type].forEach((task, tIdx) => {
-        if (!task.val) return;
-        const row = document.createElement('div');
-        row.className = 'task-row';
-        row.innerHTML = `<input type="checkbox" ${task.done?'checked':''} onchange="updateTask('${type}',${tIdx},-1,this.checked)"> <b>${task.val}</b>`;
-        cont.appendChild(row);
-        
-        task.subs.forEach((sub, sIdx) => {
-            const sRow = document.createElement('div');
-            sRow.className = 'task-row sub-row';
-            sRow.innerHTML = `<input type="checkbox" ${sub.done?'checked':''} onchange="updateTask('${type}',${tIdx},${sIdx},this.checked)"> ${sub.val}`;
-            cont.appendChild(sRow);
+function render() {
+    ['weekly', 'daily'].forEach(type => {
+        const cont = document.getElementById(type+'Display');
+        cont.innerHTML = '';
+        appData[type].forEach((t, i) => {
+            const d = document.createElement('div');
+            d.innerHTML = `<input type="checkbox" ${t.done?'checked':''} onchange="upd('${type}',${i},-1,this.checked)"> ${t.val}`;
+            cont.appendChild(d);
+            t.subs.forEach((s, si) => {
+                const sd = document.createElement('div');
+                sd.style.marginLeft = "30px";
+                sd.innerHTML = `<input type="checkbox" ${s.done?'checked':''} onchange="upd('${type}',${i},${si},this.checked)"> ${s.val}`;
+                cont.appendChild(sd);
+            });
         });
     });
+    updateXP();
 }
 
-function updateTask(type, tIdx, sIdx, status) {
-    if (sIdx === -1) appData[type][tIdx].done = status;
-    else appData[type][tIdx].subs[sIdx].done = status;
-    save();
+function upd(type, i, si, val) {
+    if (si === -1) appData[type][i].done = val;
+    else appData[type][i].subs[si].done = val;
+    localStorage.setItem('slayerData', JSON.stringify(appData));
     updateXP();
-    showToast("Progress Updated!");
+    showToast("Progress Saved");
 }
 
 function updateXP() {
-    let total = 0, earned = 0;
+    let t = 0, e = 0;
     ['weekly', 'daily'].forEach(type => {
-        appData[type].forEach(t => {
-            if (!t.val) return;
-            total++;
-            const subCount = t.subs.length;
-            const subsDone = t.subs.filter(s => s.done).length;
-            if (subCount === 0) { if (t.done) earned++; }
+        appData[type].forEach(tk => {
+            t++;
+            const sDone = tk.subs.filter(s=>s.done).length;
+            const sTotal = tk.subs.length;
+            if (sTotal === 0) { if (tk.done) e++; }
             else {
-                const weight = 1 / (subCount + 1);
-                if (t.done && subsDone > 0) earned += weight;
-                earned += (subsDone * weight);
+                const w = 1 / (sTotal + 1);
+                if (tk.done && sDone > 0) e += w;
+                e += (sDone * w);
             }
         });
     });
-    const p = total > 0 ? Math.round((earned / total) * 100) : 0;
+    const p = t > 0 ? Math.round((e/t)*100) : 0;
     document.getElementById('xpBar').style.width = p + "%";
-    document.getElementById('xpText').innerText = `XP: ${p}%`;
+    document.getElementById('xpDisplay').innerText = `XP: ${p}%`;
     
-    if (p > 0) unlockAch('ach-1');
-    if (p >= 50) unlockAch('ach-2');
-    if (p === 100) unlockAch('ach-3');
+    // Achievements
+    if (p > 0) unlock("First Blood", "🌱");
+    if (p >= 100) unlock("God Mode", "👑");
+    if (appData.weekly.length > 5) unlock("Overachiever", "📚");
 }
 
-function unlockAch(id) {
-    const el = document.getElementById(id);
-    if (!el.classList.contains('unlocked')) {
-        el.classList.add('unlocked');
-        showToast("🏆 ACHIEVEMENT UNLOCKED!");
-    }
+function unlock(name, icon) {
+    if (appData.unlocked.includes(name)) return;
+    appData.unlocked.push(name);
+    localStorage.setItem('slayerData', JSON.stringify(appData));
+    const span = document.createElement('span');
+    span.className = 'medal'; span.innerText = icon; span.title = name;
+    document.getElementById('achievementList').appendChild(span);
+    showToast(`🏆 UNLOCKED: ${name}`);
 }
 
 function showToast(m) {
-    const t = document.createElement('div');
-    t.className = 'toast'; t.innerText = m;
+    const t = document.createElement('div'); t.className = 'toast'; t.innerText = m;
     document.getElementById('toast-container').appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(() => t.remove(), 4000);
 }
 
-function updateBoss() {
-    const now = new Date(), start = new Date(now.getFullYear(), 0, 1);
+function updateTimeBars() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
     const day = Math.floor((now - start) / 86400000) + 1;
-    const total = (now.getFullYear() % 4 === 0) ? 366 : 365;
-    document.getElementById('weekBar').style.width = (day/total*100) + "%";
-    document.getElementById('weekBarText').innerText = `DAY ${day} / ${total}`;
+    document.getElementById('weekBar').style.width = (day/365*100) + "%";
+    document.getElementById('weekBarText').innerText = `YEAR: ${day}/365`;
+    
+    const dayP = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400 * 100;
+    document.getElementById('dayBar').style.width = dayP + "%";
 }
+setInterval(updateTimeBars, 1000);
 
 // Init
-setInterval(updateBoss, 60000);
-updateBoss();
-// Load existing data into editor
 appData.weekly.forEach(t => addInput('weekly', t.val, t.subs));
 appData.daily.forEach(t => addInput('daily', t.val, t.subs));
-document.getElementById('seqInput').value = appData.seq;
+document.getElementById('bgUrl').value = appData.bg;
+document.getElementById('shaderRange').value = appData.shader;
 document.getElementById('amTime').value = appData.amTime;
 document.getElementById('pmTime').value = appData.pmTime;
+updateVisuals();
+appData.unlocked.forEach(u => {
+    const span = document.createElement('span');
+    span.className = 'medal'; span.innerText = u === "First Blood" ? "🌱" : u === "God Mode" ? "👑" : "📚";
+    document.getElementById('achievementList').appendChild(span);
+});
