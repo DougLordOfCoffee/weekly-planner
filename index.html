@@ -112,7 +112,19 @@
                 <div id="dailyInputs"><h3>DAILY</h3></div>
                 <button class="add-btn" onclick="addInput('daily')">+ Daily Goal</button>
                 <button class="add-btn" onclick="addInput('weekly')">+ Weekly Goal</button>
-                
+                <div class="guide-editors" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                    <h3 style="color:var(--accent); font-size: 0.9rem;">GUIDE CONFIGURATION</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <div>
+                            Morning Guide<br>
+                            <textarea id="morningGuide" placeholder="Morning routine steps..." style="width:100%; height:80px; margin-top:5px;"></textarea>
+                        </div>
+                        <div>
+                            Night Guide<br>
+                            <textarea id="nightGuide" placeholder="Evening wind-down..." style="width:100%; height:80px; margin-top:5px;"></textarea>
+                        </div>
+                    </div>
+                </div>
 
 
             </div>
@@ -145,15 +157,6 @@
 
             <div id="guideDisplay"></div>
             <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
-            <div>
-                Morning Guide<br>
-                <textarea id="morningGuide" placeholder="Morning routine..." style="width:100%; height:80px; margin-top:5px;"></textarea>
-            </div>
-            <div>
-                Night Guide<br>
-                <textarea id="nightGuide" placeholder="Night routine..." style="width:100%; height:80px; margin-top:5px;"></textarea>
-            </div>
-        </div>
 
 
             <div class="glass-panel" style="margin-top:30px;">
