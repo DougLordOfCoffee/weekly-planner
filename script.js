@@ -1,10 +1,21 @@
-let appData = JSON.parse(localStorage.getItem('voidData')) || {
-    weekly: [], daily: [], amTime: "06:00", pmTime: "22:00",
-    bg: "", shader: 0.7, unlocked: [], lastDate: ""
+const DEFAULT_DATA = {
+  version: 1,
+  weekly: [],
+  daily: [],
+  amTime: "06:00",
+  pmTime: "22:00",
+  bg: "",
+  shader: 0.7,
+  unlocked: [],
+  lastDate: "",
+  lastWeek: null,
+  focusMode: false
 };
 
-// --- DATA SAVING ---
-const sync = () => localStorage.setItem('voidData', JSON.stringify(appData));
+let appData = Object.assign(
+  structuredClone(DEFAULT_DATA),
+  JSON.parse(localStorage.getItem("voidData")) || {}
+);
 
 // --- DASHBOARD TOGGLE ---
 function toggleView() {
@@ -25,6 +36,13 @@ function toggleView() {
     updateVisuals();
 }
 document.getElementById('saveBtn').onclick = toggleView;
+
+function toggleFocus() {
+  appData.focusMode = !appData.focusMode;
+  sync();
+  renderView();
+}
+
 
 // --- INPUT HELPERS ---
 function addInput(type, val="", subs=[]) {
@@ -57,51 +75,68 @@ function collect(id) {
 function renderView() {
     checkResets();
     ['weekly', 'daily'].forEach(type => {
-        const cont = document.getElementById(type+'Display');
-        cont.innerHTML = `<h3>${type.toUpperCase()}</h3>`;
-        appData[type].forEach((t, i) => {
-            if (!t.val) return;
-            const row = document.createElement('div');
-            row.style.margin = "12px 0";
-            row.innerHTML = `<input type="checkbox" ${t.done?'checked':''} onchange="upd('${type}',${i},-1,this.checked)"> <span style="font-weight:bold; margin-left:5px;">${t.val}</span>`;
+            const row = document.createElement("div");
+            row.className = "task-row";
+
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = t.done;
+            cb.onchange = () => upd(type, i, -1, cb.checked);
+
+            const label = document.createElement("span");
+            label.textContent = " " + t.val;
+            label.style.fontWeight = "bold";
+
+            row.append(cb, label);
             cont.appendChild(row);
-            t.subs.forEach((s, si) => {
-                const sr = document.createElement('div');
-                sr.style.marginLeft = "35px"; sr.style.marginTop = "6px"; sr.style.fontSize = "0.9rem"; sr.style.opacity = "0.8";
-                sr.innerHTML = `<input type="checkbox" ${s.done?'checked':''} onchange="upd('${type}',${i},${si},this.checked)"> ${s.val}`;
-                cont.appendChild(sr);
-            });
-        });
     });
     updateXP();
 }
+if (appData.focusMode && !t.done) {
+  row.classList.add("focus-hide");
+}
+
 
 function upd(type, i, si, val) {
-    if (si === -1) appData[type][i].done = val;
-    else appData[type][i].subs[si].done = val;
-    sync();
-    updateXP();
+  const task = appData[type][i];
+
+  if (si === -1) {
+    task.done = val;
+    task.subs.forEach(s => s.done = val);
+  } else {
+    task.subs[si].done = val;
+    task.done = task.subs.every(s => s.done);
+  }
+
+  sync();
+  updateXP();
 }
+
 
 // --- XP & ACHIEVEMENTS ---
 function updateXP() {
-    let t = 0, e = 0;
-    ['weekly', 'daily'].forEach(type => {
+        let total = 0, earned = 0;
+
+        ["weekly", "daily"].forEach(type => {
+        const weight = type === "weekly" ? 1.5 : 1;
+
         appData[type].forEach(tk => {
-            if (!tk.val) return; t++;
-            const sTotal = tk.subs.length;
-            const sDone = tk.subs.filter(s=>s.done).length;
-            if (sTotal === 0) { if (tk.done) e++; }
-            else {
-                const w = 1 / (sTotal + 1);
-                if (tk.done && sDone > 0) e += (sDone * w) + w;
-                else if (sDone > 0) e += (sDone * w);
+            if (!tk.val) return;
+            total += weight;
+
+            const subs = tk.subs.length;
+            const doneSubs = tk.subs.filter(s => s.done).length;
+
+            if (subs === 0) {
+            if (tk.done) earned += weight;
+            } else {
+            earned += weight * (doneSubs / subs);
             }
         });
-    });
-    const p = t > 0 ? Math.round((e/t)*100) : 0;
-    document.getElementById('xpBar').style.width = p + "%";
-    document.getElementById('xpLabel').innerText = `XP: ${p}%`;
+      });
+
+        const p = total ? Math.round((earned / total) * 100) : 0;
+
 
     // Achievement Checks (Only unlock if p reaches threshold)
     if (p > 0) unlock("VOID_WALKER", "🌱");
@@ -130,7 +165,39 @@ function checkResets() {
         appData.daily.forEach(t => { t.done = false; t.subs.forEach(s => s.done = false); });
         appData.lastDate = today;
         sync();
+        
     }
+}
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+}
+
+function checkResets() {
+  const now = new Date();
+  const today = now.toDateString();
+  const week = getWeekNumber(now);
+
+  if (appData.lastDate !== today) {
+    appData.daily.forEach(t => {
+      t.done = false;
+      t.subs.forEach(s => s.done = false);
+    });
+    appData.lastDate = today;
+  }
+
+  if (appData.lastWeek !== week) {
+    appData.weekly.forEach(t => {
+      t.done = false;
+      t.subs.forEach(s => s.done = false);
+    });
+    appData.lastWeek = week;
+  }
+
+  sync();
 }
 
 function updateTime() {
@@ -144,6 +211,17 @@ function updateTime() {
 
 setInterval(updateTime, 1000);
 updateTime();
+
+function updateTimeMood() {
+  const now = new Date();
+  const h = now.getHours();
+  document.body.style.filter =
+    h < 8 || h > 22 ? "brightness(0.85)" : "none";
+}
+
+setInterval(updateTimeMood, 60000);
+updateTimeMood();
+
 
 // Init
 appData.weekly.forEach(t => addInput('weekly', t.val, t.subs));

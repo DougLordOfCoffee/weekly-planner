@@ -1,0 +1,42 @@
+.hidden { display: none; }
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.fade-in {
+  animation: fade 0.25s ease;
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.task-row {
+  margin: 12px 0;
+}
+
+.sub-row {
+  margin-left: 35px;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.locked {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.focus-hide {
+  display: none;
+}
