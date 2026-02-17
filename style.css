@@ -18,6 +18,118 @@
   gap: 30px;
 }
 
+/* Editor three-column layout */
+.editor-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.guide-editor {
+  background: rgba(0,0,0,0.25);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+/* Color pickers grid in editor */
+.color-pickers {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 12px;
+  align-items: center;
+}
+.color-pickers .picker { display:flex; flex-direction:column; align-items:center; gap:6px; font-size:0.85rem; }
+.color-pickers .picker label { font-size:0.82rem; color:var(--text); }
+
+.glass-panel.guide-display { padding: 18px; }
+.guide-block { margin-bottom: 12px; }
+.task-row { padding: 6px 0; }
+
+/* Ensure bar fill text centers nicely */
+.bar-fill { display:flex; align-items:center; justify-content:center; font-weight:700; }
+
+/* Guide name input and display styling */
+.guide-editor .guide-name {
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-weight:700;
+}
+
+.guide-block strong {
+  color: var(--accent);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Slider styles (task sliders + shader) */
+input[type="range"].task-slider,
+input[type="range"]#shaderRange {
+  -webkit-appearance: none;
+  width: 160px;
+  height: 8px;
+  background: #111; /* dark interior */
+  border-radius: 8px;
+  outline: none;
+  margin-left: 8px;
+}
+input[type="range"].task-slider::-webkit-slider-runnable-track,
+input[type="range"]#shaderRange::-webkit-slider-runnable-track {
+  height: 8px; border-radius:8px; background: #111;
+}
+input[type="range"].task-slider::-webkit-slider-thumb,
+input[type="range"]#shaderRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #9500ff;
+  box-shadow: 0 0 14px rgba(149,0,255,0.45);
+  margin-top: -3px;
+  border: 2px solid rgba(255,255,255,0.06);
+}
+input[type="range"].task-slider::-moz-range-thumb,
+input[type="range"]#shaderRange::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #9500ff;
+  box-shadow: 0 0 14px rgba(149,0,255,0.45);
+  border: 2px solid rgba(255,255,255,0.06);
+}
+
+/* Slider filled track color for modern browsers (using background via CSS variables in JS) */
+input[type="range"].task-slider::-webkit-slider-thumb:focus { outline: none; }
+
+/* Custom scrollbar styling matching app palette */
+/* Webkit */
+body::-webkit-scrollbar, .glass-panel::-webkit-scrollbar { width: 12px; }
+body::-webkit-scrollbar-track, .glass-panel::-webkit-scrollbar-track { background: rgba(0,0,0,0.25); border-radius:8px; }
+body::-webkit-scrollbar-thumb, .glass-panel::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#d9b8ff,#a97bff); border-radius:8px; box-shadow: inset 0 0 6px rgba(0,0,0,0.4); }
+
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: #a97bff rgba(0,0,0,0.25); }
+
+/* Slider value label smaller in view */
+.slider-val { font-size:0.85rem; opacity:0.95; }
+
+.account-area input { margin-right:6px; }
+
+/* Keep add buttons visually stable */
+.add-btn { flex: 0 0 auto; }
+
+.input-group { box-sizing: border-box; }
+
+.oneTime-list { max-height: 200px; overflow:auto; }
+
+/* Pin the edit/focus buttons to top-left without breaking center flow */
+#editBtn { position: fixed; top: 16px; left: 14px; z-index: 1200; padding:6px 12px; display:flex; flex-direction:column; }
+#focusBtn { position: fixed; top: 60px; left: 14px; z-index: 1200; padding:6px 12px; }
+
+/* Keep add buttons stable width so adding inputs won't shift layout */
+.add-btn { min-width: 140px; }
+
+/* Slider value label styling */
+.slider-val { margin-left:8px; font-size:0.9rem; color:var(--text); }
+
 .fade-in {
   animation: fade 0.25s ease;
 }

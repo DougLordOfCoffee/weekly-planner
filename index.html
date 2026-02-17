@@ -78,13 +78,7 @@
             font-size: 14px; font-weight: bold; left: 2px; top: -2px;
         }
 
-        /* Achievement Pops */
-        .achievement-pop {
-            font-size: 2.5rem;
-            animation: emerge 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            filter: drop-shadow(0 0 10px var(--xp));
-        }
-        @keyframes emerge { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        /* (achievements removed) */
 
         .bar-outer { height: 12px; background: rgba(0,0,0,0.6); border-radius: 6px; border: 1px solid var(--glass-border); overflow: hidden; position: relative; }
         .bar-fill { height: 100%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -102,41 +96,78 @@
         
         <div id="topBars" class="hidden">
             <div class="bar-outer" style="margin-bottom: 5px;"><div id="dayBar" class="bar-fill" style="background: #3f37c9;"></div></div>
+            <div class="bar-outer" style="margin-bottom: 5px;"><div id="weekBar" class="bar-fill" style="background: #6ab04c;"></div></div>
             <div class="bar-outer" style="margin-bottom: 20px;"><div id="yearBar" class="bar-fill" style="background: var(--accent);"></div></div>
         </div>
 
         <div id="editor" class="glass-panel">
             <h2 style="margin-top:0; color:var(--accent);">Weekly Planner</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
                 <div id="weeklyInputs"><h3>WEEKLY</h3></div>
                 <div id="dailyInputs"><h3>DAILY</h3></div>
+                <div id="oneTimeInputs"><h3>ONE-TIME</h3></div>
                 <button class="add-btn" onclick="addInput('daily')">+ Daily Goal</button>
                 <button class="add-btn" onclick="addInput('weekly')">+ Weekly Goal</button>
+                <button class="add-btn" onclick="addInput('oneTime')">+ One-time Task</button>
                 <div class="guide-editors" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
-                    <h3 style="color:var(--accent); font-size: 0.9rem;">GUIDE CONFIGURATION</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-                        <div>
-                            Morning Guide<br>
-                            <textarea id="morningGuide" placeholder="Morning routine steps..." style="width:100%; height:80px; margin-top:5px;"></textarea>
-                        </div>
-                        <div>
-                            Night Guide<br>
-                            <textarea id="nightGuide" placeholder="Evening wind-down..." style="width:100%; height:80px; margin-top:5px;"></textarea>
-                        </div>
-                    </div>
+                    <h3 style="color:var(--accent); font-size: 0.9rem;">GUIDES</h3>
+                    <div id="guidesList" style="display:flex; flex-direction:column; gap:10px;"></div>
+                    <button class="add-btn" style="margin-top:10px; width:200px;" onclick="addGuide()">+ Add Guide</button>
                 </div>
 
 
             </div>
-            <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                 <div>
                     Visuals<br>
                     <input type="text" id="bgUrl" placeholder="Image URL" style="width:100%; margin-top:5px;"><br>
-                    Shader: <input type="range" id="shaderRange" min="0" max="1" step="0.05" value="0.7">
+                    Shader: <input type="range" id="shaderRange" min="0" max="1" step="0.05" value="0.7"><br>
+
+                    <div class="color-pickers" style="margin-top:10px; align-items:center;">
+                        <div class="picker">
+                            <label>XP Bar Color</label>
+                            <input type="color" id="xpColor" style="width:60px; height:30px;">
+                        </div>
+                        <div class="picker">
+                            <label>Day Bar Color</label>
+                            <input type="color" id="dayColor" style="width:60px; height:30px;">
+                        </div>
+                        <div class="picker">
+                            <label>Week Bar Color</label>
+                            <input type="color" id="weekColor" style="width:60px; height:30px;">
+                        </div>
+                        <div class="picker">
+                            <label>Center Label Color</label>
+                            <input type="color" id="centerLabelColor" style="width:60px; height:30px;">
+                        </div>
+                        <div class="picker" style="min-width:180px;">
+                            <label>Center Label Contrast</label>
+                            <input type="range" id="centerLabelContrast" min="0" max="1" step="0.05" value="0.9" style="width:160px;">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+                        <label style="font-size:0.85rem;"><input type="checkbox" id="dayCenterLabel"> Day label</label>
+                        <label style="font-size:0.85rem;"><input type="checkbox" id="xpCenterLabel"> XP label</label>
+                        <label style="font-size:0.85rem;"><input type="checkbox" id="yearCenterLabel"> Year label</label>
+                    </div>
                 </div>
                 <div>
-                    Alarms<br>
-                    Morning: <input type="time" id="amTime"> Night: <input type="time" id="pmTime">
+                    Account & Data<br>
+                    <div style="margin-top:5px; display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="acctUser" placeholder="username" style="width:120px;">
+                        <input type="password" id="acctPass" placeholder="password" style="width:120px;">
+                    </div>
+                    <div style="margin-top:8px; display:flex; gap:8px;">
+                        <button onclick="registerAccount()" class="add-btn">Register</button>
+                        <button onclick="signIn()" class="add-btn">Sign In</button>
+                        <button onclick="signOut()" class="add-btn">Sign Out</button>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button onclick="exportData()" class="add-btn">Export Data</button>
+                        <button onclick="document.getElementById('importFile').click()" class="add-btn">Import Data</button>
+                        <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importData(event)">
+                    </div>
                 </div>
             </div>
             <button id="saveBtn" style="width:100%; margin-top:25px; padding:15px; background:var(--xp); border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SAVE & VIEW</button>
@@ -144,25 +175,26 @@
 
         <div id="dashboard" class="hidden">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-                <button onclick="toggleView()" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:4px; cursor:pointer;">EDIT</button>
+                <div style="display:flex; gap:8px; align-items:flex-end;">
+                    <button onclick="toggleView()" id="editBtn" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:4px; cursor:pointer;">EDIT</button>
+                    <button onclick="toggleFocus()" id="focusBtn" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:4px; cursor:pointer;">FOCUS</button>
+                </div>
                 <div id="xpLabel" style="font-weight:bold; color:var(--xp);">XP: 0%</div>
             </div>
             <div class="bar-outer" style="height:20px; margin-bottom:30px;"><div id="xpBar" class="bar-fill" style="background: var(--xp);"></div></div>
-            <button onclick="toggleFocus()">FOCUS</button>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
                 <div id="weeklyDisplay" class="glass-panel"><h3>WEEKLY</h3></div>
                 <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
+                <div id="oneTimeDisplay" class="glass-panel"><h3>ONE-TIME</h3></div>
             </div>
+            <div id="guideDisplay" class="glass-panel" style="margin-top:18px;"></div>
+            <!-- add-buttons intentionally removed from dashboard view -->
+            
+            <div class="guide-editors" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
 
-            <div id="guideDisplay"></div>
-            <div style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
 
-
-            <div class="glass-panel" style="margin-top:30px;">
-                <h3 style="margin-top:0;">Achievements</h3>
-                <div id="achievementList" style="display:flex; gap:20px; min-height:50px;"></div>
-            </div>
+            <!-- Achievements removed -->
         </div>
     </div>
 

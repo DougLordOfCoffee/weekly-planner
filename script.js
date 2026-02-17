@@ -3,17 +3,17 @@ let appData = {
     version: 1,
     weekly: [],
     daily: [],
-    guideNight: "",
-    guideMorning: "",
-    amTime: "06:00",
-    pmTime: "22:00",
+    oneTime: [],
+    guides: [],
     bg: "",
     shader: 0.7,
-    unlocked: [],
     lastDate: "",
     lastWeek: null,
     focusMode: false,
     view: "editor",
+    colors: { xp: '#9500ff', day: '#3f37c9', week: '#6ab04c', center: '#ffffff' },
+    centerLabelContrast: 0.9,
+    centerLabels: { day: false, xp: false, year: false },
     ...saved
 };
 
@@ -29,12 +29,22 @@ function toggleView() {
         // Collect data from inputs before switching
         appData.weekly = collect('weekly');
         appData.daily = collect('daily');
+        appData.oneTime = collect('oneTime');
         appData.bg = document.getElementById('bgUrl').value;
         appData.shader = document.getElementById('shaderRange').value;
-        appData.amTime = document.getElementById('amTime').value;
-        appData.pmTime = document.getElementById('pmTime').value;
-        appData.guideNight = document.getElementById('nightGuide').value;
-        appData.guideMorning = document.getElementById('morningGuide').value;
+        // removed alarm inputs (no longer in editor)
+        appData.colors.xp = document.getElementById('xpColor').value;
+        appData.colors.day = document.getElementById('dayColor').value;
+        appData.colors.week = document.getElementById('weekColor').value;
+        // center label visual controls
+        const centerColEl = document.getElementById('centerLabelColor');
+        if (centerColEl) appData.colors.center = centerColEl.value;
+        const centerContrastEl = document.getElementById('centerLabelContrast');
+        if (centerContrastEl) appData.centerLabelContrast = parseFloat(centerContrastEl.value || 0.9);
+        appData.centerLabels.day = !!document.getElementById('dayCenterLabel').checked;
+        appData.centerLabels.xp = !!document.getElementById('xpCenterLabel').checked;
+        appData.centerLabels.year = !!document.getElementById('yearCenterLabel').checked;
+        appData.guides = collectGuides();
         
         renderView(); 
     }
@@ -71,7 +81,10 @@ function addInput(type, val = "", subs = []) {
 
     g.innerHTML = `
         <div class="input-row">
-            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="width:70%;">
+            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="width:60%;">
+            <label style="font-size:0.85rem;"><input type="checkbox" class="one-time" ${type==='oneTime'?'checked':''}> One-time</label>
+            <label style="font-size:0.85rem;"><input type="checkbox" class="use-slider"> Slider</label>
+            <input type="number" class="slider-max" min="1" value="5" style="width:60px;">
             <button onclick="this.parentElement.nextElementSibling.appendChild(createSubIn())" style="background:var(--accent); color:white;">+S</button>
             <button class="del-btn" onclick="this.closest('.input-group').remove()">X</button>
         </div>
@@ -101,6 +114,14 @@ function collect(type) {
         // Preserve 'done' if the text hasn't changed
         const isDone = (existing && existing.val === mainVal) ? existing.done : false;
 
+        const useSliderEl = g.querySelector('.use-slider');
+        const sliderMaxEl = g.querySelector('.slider-max');
+        const oneTimeEl = g.querySelector('.one-time');
+        const useSlider = useSliderEl ? useSliderEl.checked : (existing? existing.useSlider:false);
+        const sliderMax = sliderMaxEl ? parseInt(sliderMaxEl.value || 1,10) : (existing? existing.sliderMax||1:1);
+        const sliderVal = existing && existing.sliderVal ? existing.sliderVal : 0;
+        const oneTime = oneTimeEl ? oneTimeEl.checked : false;
+
         const subs = Array.from(g.querySelectorAll('.s-in')).map((s, si) => {
             const existingSub = (existing && existing.subs && existing.subs[si]) ? existing.subs[si] : null;
             return {
@@ -109,7 +130,7 @@ function collect(type) {
             };
         });
 
-        return { val: mainVal, done: isDone, subs: subs };
+        return { val: mainVal, done: isDone, subs: subs, useSlider: useSlider, sliderMax: sliderMax, sliderVal: sliderVal, oneTime: oneTime };
     }).filter(t => t.val.trim() !== "");
 }
 
@@ -120,20 +141,12 @@ function renderView() {
     if (!guide) return; 
 
     guide.innerHTML = "";
-
-    if (appData.guideNight) {
+    appData.guides.forEach(gd => {
         const n = document.createElement("div");
         n.className = "guide-block";
-        n.innerHTML = `<strong>Night:</strong><pre>${appData.guideNight}</pre>`;
+        n.innerHTML = `<strong>${gd.name}:</strong><pre>${gd.text}</pre>`;
         guide.appendChild(n);
-    }
-
-    if (appData.guideMorning) {
-        const m = document.createElement("div");
-        m.className = "guide-block";
-        m.innerHTML = `<strong>Morning:</strong><pre>${appData.guideMorning}</pre>`;
-        guide.appendChild(m);
-    }
+    });
 
     ["weekly", "daily"].forEach(type => {
         const cont = document.getElementById(type + "Display");
@@ -160,6 +173,46 @@ function renderView() {
             row.append(cb, label);
             cont.appendChild(row);
 
+            // Slider UI rendered as a sub-row (below parent, above subs)
+            if (t.useSlider) {
+                const srow = document.createElement('div');
+                srow.className = 'sub-row';
+                srow.style.display = 'flex'; srow.style.alignItems = 'center'; srow.style.gap = '8px';
+
+                const sl = document.createElement('input');
+                sl.type = 'range';
+                sl.className = 'task-slider';
+                sl.min = 0; sl.max = t.sliderMax || 1; sl.value = t.sliderVal || 0;
+                sl.step = 0.01; // smooth while dragging
+                // live label
+                const valLabel = document.createElement('span'); valLabel.className = 'slider-val'; valLabel.innerText = `${Math.round(t.sliderVal||0)}/${t.sliderMax||1}`;
+
+                // initialize filled track
+                updateRangeFill(sl, sl.value, sl.max, appData.colors.xp);
+
+                // while dragging: update label and track only (no re-render) for smooth follow
+                sl.oninput = (e) => { valLabel.innerText = `${Math.round(e.target.value)}/${sl.max}`; updateRangeFill(sl, e.target.value, sl.max, appData.colors.xp); };
+
+                // on release (change), snap to nearest notch and commit with a small snap animation
+                sl.onchange = (e) => {
+                    const target = e.target;
+                    const current = parseFloat(target.value);
+                    const v = Math.round(current);
+                    // animate the visual fill from current fractional to snapped integer
+                    animateRangeFill(target, current, v, sl.max, appData.colors.xp, 200, () => {
+                        target.value = v;
+                        valLabel.innerText = `${v}/${sl.max}`;
+                        // ensure final fill state
+                        updateRangeFill(target, v, sl.max, appData.colors.xp);
+                        updSlider(type, i, v);
+                    });
+                };
+
+                srow.appendChild(sl);
+                srow.appendChild(valLabel);
+                cont.appendChild(srow);
+            }
+
             t.subs.forEach((s, si) => {
                 if (!s.val) return;
                 const sr = document.createElement("div");
@@ -178,6 +231,19 @@ function renderView() {
                 cont.appendChild(sr);
             });
         });
+        // render one-time tasks
+        const oneCont = document.getElementById('oneTimeDisplay');
+        if (oneCont) {
+            oneCont.innerHTML = '<h3>ONE-TIME</h3>';
+                appData.oneTime.forEach((t,i) => {
+                    if (!t.val) return;
+                    const row = document.createElement('div'); row.className='task-row';
+                    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = t.done; cb.onchange = () => { if(cb.checked){ appData.oneTime.splice(i,1); sync(); renderView(); } else { t.done = false; sync(); renderView(); } };
+                    const label = document.createElement('span'); label.textContent = ' '+t.val; label.style.fontWeight='bold';
+                    row.append(cb,label);
+                    oneCont.appendChild(row);
+                });
+        }
     });
 
     updateXP();
@@ -215,35 +281,196 @@ function updateXP() {
     document.getElementById("xpBar").style.width = p + "%";
     document.getElementById("xpLabel").innerText = `XP: ${p}%`;
 
-    if (p > 0) unlock("VOID_WALKER", "🌱");
-    if (p >= 50) unlock("SYNAPSE_LINK", "🌗");
-    if (p >= 100) unlock("SYSTEM_LORD", "👑");
-}
-
-function unlock(id, icon) {
-    if (appData.unlocked.includes(id)) return;
-    appData.unlocked.push(id);
-    sync();
-    renderAchievements();
-}
-
-function renderAchievements() {
-    const list = document.getElementById('achievementList');
-    list.innerHTML = "";
-    appData.unlocked.forEach(id => {
-        const icon = id === "VOID_WALKER" ? "🌱" : id === "SYNAPSE_LINK" ? "🌗" : "👑";
-        const span = document.createElement('span');
-        span.className = 'achievement-pop'; 
-        span.innerText = icon; 
-        span.title = id;
-        list.appendChild(span);
-    });
+    // achievements removed
+    // keep other visuals updated
+    updateVisuals();
 }
 
 // --- UTILS ---
 function updateVisuals() {
     document.getElementById('bg-layer').style.backgroundImage = `url(${appData.bg})`;
     document.getElementById('shader-layer').style.background = `rgba(0,0,0,${appData.shader})`;
+    // apply bar colors
+    const xpBar = document.getElementById('xpBar');
+    const dayBar = document.getElementById('dayBar');
+    const weekBar = document.getElementById('weekBar');
+    if (xpBar) xpBar.style.background = appData.colors.xp;
+    if (dayBar) dayBar.style.background = appData.colors.day;
+    if (weekBar) weekBar.style.background = appData.colors.week;
+    // apply center label color/contrast and centering
+    function hexToRgba(hex, a) {
+        if (!hex) return `rgba(255,255,255,${a})`;
+        const h = hex.replace('#','');
+        const bigint = parseInt(h.length===3? h.split('').map(c=>c+c).join('') : h, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r},${g},${b},${a})`;
+    }
+    const centerColor = appData.colors.center || '#ffffff';
+    const contrast = (typeof appData.centerLabelContrast === 'number') ? appData.centerLabelContrast : 0.9;
+    // xp label (separate element) and bar-fill texts
+    const xpLabelEl = document.getElementById('xpLabel');
+    if (xpLabelEl) xpLabelEl.style.color = hexToRgba(centerColor, contrast);
+    [xpBar, dayBar, weekBar].forEach(b => {
+        if (!b) return;
+        b.style.display = 'flex';
+        b.style.alignItems = 'center';
+        b.style.justifyContent = 'center';
+        b.style.color = hexToRgba(centerColor, contrast);
+        // if label toggles are off, clear inner text; updateTime sets the day/week label if enabled
+        if (b === xpBar) b.innerText = appData.centerLabels.xp ? (xpLabelEl? xpLabelEl.innerText : '') : '';
+        if (b === dayBar && !appData.centerLabels.day) b.innerText = '';
+        if (b === weekBar && !appData.centerLabels.year) b.innerText = '';
+    });
+}
+
+// --- EXPORT / IMPORT ---
+function exportData() {
+    const data = JSON.stringify(appData, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'weekly-planner-export.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+function importData(e) {
+    const f = e.target.files ? e.target.files[0] : null;
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        try {
+            const parsed = JSON.parse(ev.target.result);
+            // Basic validation
+            if (parsed && typeof parsed === 'object') {
+                appData = Object.assign({}, appData, parsed);
+                sync();
+                // rebuild UI
+                document.getElementById('weeklyInputs').innerHTML = '<h3>WEEKLY</h3>';
+                document.getElementById('dailyInputs').innerHTML = '<h3>DAILY</h3>';
+                document.getElementById('oneTimeInputs').innerHTML = '<h3>ONE-TIME</h3>';
+                populateInputs();
+                updateVisuals();
+                renderView();
+                alert('Import complete');
+            }
+        } catch (err) { alert('Failed to import: ' + err.message); }
+    };
+    reader.readAsText(f);
+}
+
+// --- SIMPLE LOCAL ACCOUNT (client-only) ---
+async function hashPassword(pw) {
+    const enc = new TextEncoder();
+    const data = enc.encode(pw);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function registerAccount() {
+    const u = document.getElementById('acctUser').value.trim();
+    const p = document.getElementById('acctPass').value;
+    if (!u || !p) return alert('Enter username and password');
+    const h = await hashPassword(p);
+    const key = 'vp_user_' + u;
+    if (localStorage.getItem(key)) return alert('User exists');
+    const payload = { pwHash: h, data: appData };
+    localStorage.setItem(key, JSON.stringify(payload));
+    alert('Registered. You are signed in.');
+    appData.currentUser = u;
+    sync();
+}
+
+async function signIn() {
+    const u = document.getElementById('acctUser').value.trim();
+    const p = document.getElementById('acctPass').value;
+    if (!u || !p) return alert('Enter username and password');
+    const key = 'vp_user_' + u;
+    const stored = localStorage.getItem(key);
+    if (!stored) return alert('No such user');
+    const parsed = JSON.parse(stored);
+    const h = await hashPassword(p);
+    if (h !== parsed.pwHash) return alert('Wrong password');
+    // load user's saved data
+    appData = Object.assign({}, appData, parsed.data);
+    appData.currentUser = u;
+    sync();
+    // rebuild UI
+    document.getElementById('weeklyInputs').innerHTML = '<h3>WEEKLY</h3>';
+    document.getElementById('dailyInputs').innerHTML = '<h3>DAILY</h3>';
+    document.getElementById('oneTimeInputs').innerHTML = '<h3>ONE-TIME</h3>';
+    populateInputs();
+    updateVisuals();
+    renderView();
+    alert('Signed in');
+}
+
+function signOut() {
+    delete appData.currentUser;
+    sync();
+    alert('Signed out');
+}
+
+// (removed task-based week completion) Week progress is time-based in updateTime()
+
+function updSlider(type, i, val) {
+    const task = appData[type][i];
+    if (!task) return;
+    task.sliderVal = val;
+    if (task.sliderMax && val >= task.sliderMax) task.done = true;
+    else task.done = false;
+    sync();
+    // update display for this task only: avoid full re-render for smooth interaction
+    renderView();
+}
+
+function updateRangeFill(el, value, max, fillColor) {
+    const pct = max ? (value / max) * 100 : 0;
+    const track = `linear-gradient(90deg, ${fillColor} ${pct}%, #111 ${pct}%)`;
+    el.style.background = track;
+}
+
+// Animate a range fill from `from` to `to` (numeric values) over `duration`ms,
+// calling updateRangeFill each frame for a smooth snap animation.
+function animateRangeFill(el, from, to, max, fillColor, duration = 220, cb) {
+    const start = performance.now();
+    const diff = to - from;
+    function step(ts) {
+        const t = Math.min(1, (ts - start) / duration);
+        const cur = from + diff * t;
+        updateRangeFill(el, cur, max, fillColor);
+        if (t < 1) requestAnimationFrame(step);
+        else if (cb) cb();
+    }
+    requestAnimationFrame(step);
+}
+
+function collectGuides() {
+    const list = document.getElementById('guidesList');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.guide-editor')).map(ed => {
+        const name = ed.querySelector('.guide-name').value || 'Guide';
+        const text = ed.querySelector('.guide-text').value || '';
+        return { name, text };
+    });
+}
+
+function addGuide(name = '', text = '') {
+    const list = document.getElementById('guidesList');
+    if (!list) return;
+    list.appendChild(createGuideEditor(name, text));
+}
+
+function createGuideEditor(name = '', text = '') {
+    const div = document.createElement('div'); div.className = 'guide-editor';
+    div.style.display = 'flex'; div.style.gap = '8px'; div.style.alignItems = 'flex-start';
+    div.innerHTML = `
+        <input class="guide-name" placeholder="Guide name" value="${name}" style="width:150px;">
+        <textarea class="guide-text" placeholder="Guide content" style="flex:1; height:60px">${text}</textarea>
+        <button class="del-btn" onclick="this.closest('.guide-editor').remove()">X</button>
+    `;
+    return div;
 }
 
 function getWeekNumber(d) {
@@ -276,27 +503,103 @@ function updateTime() {
     const day = Math.floor((now - start) / 86400000) + 1;
     document.getElementById('yearBar').style.width = (day/365*100) + "%";
     const dayP = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400 * 100;
-    document.getElementById('dayBar').style.width = dayP + "%";
+    const db = document.getElementById('dayBar');
+    if (db) db.style.width = dayP + "%";
+    // center label for day if enabled
+    if (db) db.innerText = appData.centerLabels.day ? (`DAY ${Math.round(dayP)}%`) : '';
+    // week percent based on time-of-week (Mon-Sun), calculate seconds elapsed in week
+    const weekStart = new Date(now);
+    // move to start of week (Sunday)
+    weekStart.setHours(0,0,0,0);
+    const dayOfWeek = now.getDay(); // 0 (Sun) - 6
+    const secondsInDay = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds();
+    const secondsElapsed = dayOfWeek*86400 + secondsInDay;
+    const weekPct = Math.round((secondsElapsed / (7*86400)) * 100);
+    const wb = document.getElementById('weekBar');
+    if (wb) wb.style.width = weekPct + "%";
+    if (wb) wb.innerText = appData.centerLabels.year ? (`WEEK ${weekPct}%`) : '';
 }
 
 // --- INIT ---
 setInterval(updateTime, 1000);
 updateTime();
 checkResets();
-
 // Populate Editor
-appData.weekly.forEach(t => addInput('weekly', t.val, t.subs));
-appData.daily.forEach(t => addInput('daily', t.val, t.subs));
-if (appData.weekly.length === 0) addInput('weekly');
-if (appData.daily.length === 0) addInput('daily');
+function populateInputs() {
+    // weekly
+    const wCont = document.getElementById('weeklyInputs');
+    appData.weekly.forEach(t => {
+        addInput('weekly', t.val, t.subs || []);
+        const groups = wCont.querySelectorAll('.input-group');
+        const g = groups[groups.length-1];
+        if (t.useSlider && g) g.querySelector('.use-slider').checked = true;
+        if (t.sliderMax && g) g.querySelector('.slider-max').value = t.sliderMax;
+        if (t.oneTime && g) g.querySelector('.one-time').checked = true;
+    });
+    if (appData.weekly.length === 0) addInput('weekly');
 
+    // daily
+    const dCont = document.getElementById('dailyInputs');
+    appData.daily.forEach(t => {
+        addInput('daily', t.val, t.subs || []);
+        const groups = dCont.querySelectorAll('.input-group');
+        const g = groups[groups.length-1];
+        if (t.useSlider && g) g.querySelector('.use-slider').checked = true;
+        if (t.sliderMax && g) g.querySelector('.slider-max').value = t.sliderMax;
+        if (t.oneTime && g) g.querySelector('.one-time').checked = true;
+    });
+    if (appData.daily.length === 0) addInput('daily');
+
+    // oneTime
+    const oCont = document.getElementById('oneTimeInputs');
+    appData.oneTime.forEach(t => {
+        addInput('oneTime', t.val, t.subs || []);
+        const groups = oCont.querySelectorAll('.input-group');
+        const g = groups[groups.length-1];
+        if (t.useSlider && g) g.querySelector('.use-slider').checked = true;
+        if (t.sliderMax && g) g.querySelector('.slider-max').value = t.sliderMax;
+        if (t.oneTime && g) g.querySelector('.one-time').checked = true;
+    });
+}
+
+populateInputs();
+
+// Visuals and controls
 document.getElementById('bgUrl').value = appData.bg || "";
 document.getElementById('shaderRange').value = appData.shader || 0.7;
-document.getElementById('amTime').value = appData.amTime || "06:00";
-document.getElementById('pmTime').value = appData.pmTime || "22:00";
-document.getElementById('nightGuide').value = appData.guideNight || "";
-document.getElementById('morningGuide').value = appData.guideMorning || "";
+document.getElementById('xpColor').value = appData.colors.xp || '#80ffdb';
+document.getElementById('dayColor').value = appData.colors.day || '#3f37c9';
+document.getElementById('weekColor').value = appData.colors.week || '#6ab04c';
+const centerColorEl = document.getElementById('centerLabelColor');
+if (centerColorEl) centerColorEl.value = appData.colors.center || '#ffffff';
+const centerContrastEl = document.getElementById('centerLabelContrast');
+if (centerContrastEl) centerContrastEl.value = appData.centerLabelContrast || 0.9;
+
+// live updates for color pickers
+const xpEl = document.getElementById('xpColor'); if (xpEl) xpEl.onchange = () => { appData.colors.xp = xpEl.value; sync(); updateVisuals(); };
+const dayEl = document.getElementById('dayColor'); if (dayEl) dayEl.onchange = () => { appData.colors.day = dayEl.value; sync(); updateVisuals(); };
+const weekEl = document.getElementById('weekColor'); if (weekEl) weekEl.onchange = () => { appData.colors.week = weekEl.value; sync(); updateVisuals(); };
+if (centerColorEl) centerColorEl.onchange = () => { appData.colors.center = centerColorEl.value; sync(); updateVisuals(); };
+if (centerContrastEl) centerContrastEl.oninput = () => { appData.centerLabelContrast = parseFloat(centerContrastEl.value); sync(); updateVisuals(); };
+
+// initialize shader slider fill
+const shaderEl = document.getElementById('shaderRange');
+if (shaderEl) {
+    updateRangeFill(shaderEl, shaderEl.value, shaderEl.max || 1, appData.colors.day);
+    shaderEl.oninput = (e) => { updateRangeFill(shaderEl, e.target.value, shaderEl.max || 1, appData.colors.day); };
+    shaderEl.onchange = (e) => { updateRangeFill(shaderEl, Math.round(e.target.value*100)/100, shaderEl.max || 1, appData.colors.day); };
+}
+
+// populate center-label toggles
+document.getElementById('dayCenterLabel').checked = !!appData.centerLabels.day;
+document.getElementById('xpCenterLabel').checked = !!appData.centerLabels.xp;
+document.getElementById('yearCenterLabel').checked = !!appData.centerLabels.year;
+
+// Guides
+if (appData.guides && appData.guides.length) {
+    appData.guides.forEach(g => addGuide(g.name, g.text));
+}
 
 applyVisibility();
-renderAchievements();
+updateVisuals();
 renderView();
