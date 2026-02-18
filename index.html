@@ -92,31 +92,35 @@
     <div id="shader-layer"></div>
     <div id="toast-container" style="position:fixed; top:20px; right:20px; z-index:1000;"></div>
 
-    <div class="app-container" style="max-width: 1100px; margin: 40px auto; padding: 0 20px;">
+    <div class="app-container" style="margin: 40px auto; padding: 0 40px; max-width: 1200px;">
         
-        <div id="topBars" class="hidden">
+        <div id="topBars" class="hidden" style="width: 900px; margin: 0 auto;">
             <div class="bar-outer" style="margin-bottom: 5px;"><div id="dayBar" class="bar-fill" style="background: #3f37c9;"></div></div>
             <div class="bar-outer" style="margin-bottom: 5px;"><div id="weekBar" class="bar-fill" style="background: #6ab04c;"></div></div>
             <div class="bar-outer" style="margin-bottom: 20px;"><div id="yearBar" class="bar-fill" style="background: var(--accent);"></div></div>
         </div>
 
-        <div id="editor" class="glass-panel">
+        <div id="editor" class="glass-panel" style="max-width: 1000px; margin: 0 auto;">
             <h2 style="margin-top:0; color:var(--accent);">Weekly Planner</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
-                <div id="weeklyInputs"><h3>WEEKLY</h3></div>
-                <div id="dailyInputs"><h3>DAILY</h3></div>
-                <div id="oneTimeInputs"><h3>ONE-TIME</h3></div>
-                <button class="add-btn" onclick="addInput('daily')">+ Daily Goal</button>
-                <button class="add-btn" onclick="addInput('weekly')">+ Weekly Goal</button>
-                <button class="add-btn" onclick="addInput('oneTime')">+ One-time Task</button>
-                <div class="guide-editors" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
-                    <h3 style="color:var(--accent); font-size: 0.9rem;">GUIDES</h3>
-                    <div id="guidesList" style="display:flex; flex-direction:column; gap:10px;"></div>
-                    <button class="add-btn" style="margin-top:10px; width:200px;" onclick="addGuide()">+ Add Guide</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <div id="dailyInputs"><h3>DAILY</h3></div>
+                    <button class="add-btn" style="margin-top:10px;" onclick="addInput('daily')">+ Daily Goal</button>
                 </div>
-
-
+                <div>
+                    <div id="weeklyInputs"><h3>WEEKLY</h3></div>
+                    <button class="add-btn" style="margin-top:10px;" onclick="addInput('weekly')">+ Weekly Goal</button>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <div class="guide-editors">
+                        <h3 style="color:var(--accent); font-size: 0.9rem;">GUIDES</h3>
+                        <div id="guidesList" style="display:flex; flex-direction:column; gap:10px;"></div>
+                        <button class="add-btn" style="margin-top:10px; width:200px;" onclick="addGuide()">+ Add Guide</button>
+                    </div>
+                </div>
             </div>
+            <div id="oneTimeInputs" style="margin-top:20px;"><h3>ONE-TIME</h3></div>
+            <button class="add-btn" style="margin-top:5px;" onclick="addInput('oneTime')">+ One-time Task</button>
                 <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
                 <div>
                     Visuals<br>
@@ -154,13 +158,17 @@
                 </div>
                 <div>
                     Account & Data<br>
-                    <div style="margin-top:5px; display:flex; gap:8px; align-items:center;">
-                        <input type="text" id="acctUser" placeholder="username" style="width:120px;">
-                        <input type="password" id="acctPass" placeholder="password" style="width:120px;">
-                    </div>
-                    <div style="margin-top:8px; display:flex; gap:8px;">
+                    <div style="margin-top:5px; display:flex; gap:8px; flex-direction:column;">
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="acctUser" placeholder="username" style="width:120px;">
+                            <input type="password" id="acctPass" placeholder="password" style="width:120px;">
+                        </div>
                         <button onclick="registerAccount()" class="add-btn">Register</button>
+                    </div>
+                    <div style="margin-top:8px; display:flex; gap:8px; flex-direction:column;">
                         <button onclick="signIn()" class="add-btn">Sign In</button>
+                        <button id="saveDataBtn" onclick="saveDataToAccount()" class="add-btn" style="display:none;">SAVE</button>
+                        <button id="loadDataBtn" onclick="loadDataFromAccount()" class="add-btn" style="display:none;">LOAD</button>
                         <button onclick="signOut()" class="add-btn">Sign Out</button>
                     </div>
                     <div style="margin-top:12px; display:flex; gap:8px;">
@@ -174,27 +182,106 @@
         </div>
 
         <div id="dashboard" class="hidden">
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-                <div style="display:flex; gap:8px; align-items:flex-end;">
-                    <button onclick="toggleView()" id="editBtn" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:4px; cursor:pointer;">EDIT</button>
-                    <button onclick="toggleFocus()" id="focusBtn" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:5px 15px; border-radius:4px; cursor:pointer;">FOCUS</button>
-                </div>
+            <div style="display:flex; justify-content:flex-end; align-items:flex-end; margin-bottom:10px; max-width: 900px; margin-left: auto; margin-right: auto;">
                 <div id="xpLabel" style="font-weight:bold; color:var(--xp);">XP: 0%</div>
             </div>
-            <div class="bar-outer" style="height:20px; margin-bottom:30px;"><div id="xpBar" class="bar-fill" style="background: var(--xp);"></div></div>
+            <div style="max-width: 900px; margin-left: auto; margin-right: auto;">
+                <div class="bar-outer" style="height:20px; margin-bottom:30px;"><div id="xpBar" class="bar-fill" style="background: var(--xp);"></div></div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
-                <div id="weeklyDisplay" class="glass-panel"><h3>WEEKLY</h3></div>
-                <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
-                <div id="oneTimeDisplay" class="glass-panel"><h3>ONE-TIME</h3></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div id="dailyDisplay" class="glass-panel"><h3>DAILY</h3></div>
+                    <div id="weeklyDisplay" class="glass-panel"><h3>WEEKLY</h3></div>
+                </div>
+                <div id="guideDisplay" class="glass-panel" style="margin-top:18px;"></div>
+                <!-- add-buttons intentionally removed from dashboard view -->
             </div>
-            <div id="guideDisplay" class="glass-panel" style="margin-top:18px;"></div>
-            <!-- add-buttons intentionally removed from dashboard view -->
-            
-            <div class="guide-editors" style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+        </div>
 
+        <!-- Right-side taskbar for one-time tasks, system info, and controls -->
+        <div id="taskbar" class="taskbar hidden">
+            <button id="taskbarToggle" class="taskbar-toggle" onclick="toggleTaskbarCollapse()" title="Toggle taskbar">▶</button>
+            <div class="taskbar-tabs">
+                <button class="taskbar-tab active" data-tab="onetime">ONE-TIME</button>
+                <button class="taskbar-tab" data-tab="sysinfo">INFO</button>
+            </div>
+            <div class="taskbar-content">
+                <div id="taskbar-onetime" class="taskbar-panel active">
+                    <div id="oneTimeDisplay" class="glass-panel"><h3>ONE-TIME</h3></div>
+                </div>
+                <div id="taskbar-sysinfo" class="taskbar-panel">
+                    <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 20px; align-items: center;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                            <div class="sys-icon clock-icon" style="width: 70px; height: 70px;">
+                                <div class="clock-display">
+                                    <span class="time-large" id="infoTimeHour">--</span>
+                                    <span class="time-separator">:</span>
+                                    <span class="time-large" id="infoTimeMin">--</span>
+                                    <span class="time-period" id="infoPeriod">--</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: var(--text);">TIME</span>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                            <div class="sys-icon calendar-icon" style="width: 70px; height: 70px;">
+                                <div class="calendar-display">
+                                    <span class="cal-month" id="infoMonth">--</span>
+                                    <span class="cal-day" id="infoDay">--</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: var(--text);">DATE</span>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                            <div class="sys-icon battery-icon" style="width: 70px; height: 70px;">
+                                <div class="battery-display">
+                                    <span class="batt-value" id="infoBattery">--</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: var(--text);">BATTERY</span>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                            <div class="sys-icon volume-icon" style="width: 70px; height: 70px;">
+                                <div class="volume-display">
+                                    <span class="vol-value" id="infoVolume">--</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: var(--text);">VOLUME</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="taskbar-controls" style="margin-top:auto; border-top:1px solid var(--glass-border); padding-top:12px;">
+                <button onclick="toggleView()" id="editBtn" style="width:100%; background:none; border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:4px; cursor:pointer; margin-bottom:8px;">EDIT</button>
+                <button onclick="toggleFocus()" id="focusBtn" style="width:100%; background:none; border:1px solid var(--accent); color:var(--accent); padding:8px 12px; border-radius:4px; cursor:pointer;">FOCUS</button>
+            </div>
+        </div>
 
-            <!-- Achievements removed -->
+        <!-- Compact system info icons (only visible when taskbar collapsed) -->
+        <div id="compactSysInfo" class="compact-sys-info hidden">
+            <div class="sys-icon clock-icon" title="Time">
+                <div class="clock-display">
+                    <span id="compactTimeHour" class="time-large">--</span><span class="time-separator">:</span><span id="compactTimeMin" class="time-large">--</span>
+                    <span id="compactPeriod" class="time-period">AM</span>
+                </div>
+            </div>
+            <div class="sys-icon calendar-icon" title="Date">
+                <div class="calendar-display">
+                    <span id="compactMonth" class="cal-month">JAN</span>
+                    <span id="compactDay" class="cal-day">--</span>
+                </div>
+            </div>
+            <div class="sys-icon battery-icon" title="Battery">
+                <div class="battery-display">
+                    <span id="compactBatteryValue" class="batt-value">--</span>%
+                </div>
+            </div>
+            <div class="sys-icon volume-icon" title="Volume">
+                <div class="volume-display">
+                    <span id="compactVolumeValue" class="vol-value">~</span>
+                </div>
+            </div>
         </div>
     </div>
 

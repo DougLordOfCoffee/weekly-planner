@@ -64,6 +64,14 @@
   margin-bottom: 6px;
 }
 
+/* Slider max input styling */
+input[type="number"].slider-max {
+  width: 50px !important;
+  padding: 4px 6px !important;
+  font-size: 0.75rem !important;
+  text-align: center;
+}
+
 /* Slider styles (task sliders + shader) */
 input[type="range"].task-slider,
 input[type="range"]#shaderRange {
@@ -120,9 +128,7 @@ body::-webkit-scrollbar-thumb, .glass-panel::-webkit-scrollbar-thumb { backgroun
 
 .oneTime-list { max-height: 200px; overflow:auto; }
 
-/* Pin the edit/focus buttons to top-left without breaking center flow */
-#editBtn { position: fixed; top: 16px; left: 14px; z-index: 1200; padding:6px 12px; display:flex; flex-direction:column; }
-#focusBtn { position: fixed; top: 60px; left: 14px; z-index: 1200; padding:6px 12px; }
+/* Edit/Focus buttons now in taskbar - no fixed positioning needed */
 
 /* Keep add buttons stable width so adding inputs won't shift layout */
 .add-btn { min-width: 140px; }
@@ -225,6 +231,476 @@ button {
   white-space: pre-wrap;
   font-size: 0.9rem;
   line-height: 1.5;
+}
+
+/* Right-side taskbar */
+.taskbar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 10, 15, 0.95);
+  border-left: 1px solid var(--glass-border);
+  padding: 16px;
+  box-sizing: border-box;
+  z-index: 1100;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.taskbar.collapsed {
+  width: 60px;
+  padding: 12px 8px;
+}
+
+.taskbar-toggle {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--glass-border);
+  color: var(--accent);
+  padding: 10px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taskbar-toggle:hover {
+  border-color: var(--accent);
+  background: rgba(0,0,0,0.8);
+}
+
+.taskbar.collapsed .taskbar-toggle {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 8px 4px;
+}
+
+.taskbar-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 8px;
+  flex-direction: row;
+}
+
+.taskbar.collapsed .taskbar-tabs {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: 1px solid var(--glass-border);
+  padding-right: 8px;
+  padding-bottom: 0;
+}
+
+.taskbar-tab {
+  flex: 1;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.taskbar.collapsed .taskbar-tab {
+  padding: 8px 4px;
+  font-size: 0.55rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  flex: 0 0 auto;
+  word-break: normal;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.taskbar-tab.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
+.taskbar-tab:hover:not(.active) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.taskbar-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.taskbar.collapsed .taskbar-content {
+  display: none;
+}
+
+.taskbar-panel {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.taskbar-panel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.taskbar-panel .glass-panel {
+  padding: 12px;
+  font-size: 0.9rem;
+  max-width: 100%;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.taskbar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.taskbar.collapsed .taskbar-controls {
+  display: none;
+}
+
+/* Compact system info icons (bottom right when taskbar collapsed) */
+.compact-sys-info {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1200;
+}
+
+.compact-sys-info.hidden {
+  display: none;
+}
+
+/* Compact icons expand vertically to fit rotated text */
+.compact-sys-info .sys-icon {
+  width: 32px;
+  height: auto;
+  min-height: 32px;
+}
+
+/* Digital Clock Icon - Box shape with top bar */
+.sys-icon.clock-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(40,40,50,0.95));
+  border: 2px solid var(--accent);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 10px rgba(156, 78, 221, 0.2);
+}
+
+.clock-icon::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+.clock-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Horizontal text for large INFO tab icons */
+.sys-icon[style*="width: 70px"] .clock-display {
+  writing-mode: horizontal-tb;
+  flex-direction: row;
+  gap: 0;
+}
+
+.time-large {
+  font-size: 0.45rem;
+  font-weight: bold;
+  color: var(--accent);
+  font-family: 'Courier New', monospace;
+  line-height: 1.1;
+}
+
+/* Larger text for INFO tab icons */
+.sys-icon[style*="width: 70px"] .time-large {
+  font-size: 0.95rem;
+}
+
+.time-separator {
+  font-size: 0.45rem;
+  color: var(--accent);
+  animation: blink 1s infinite;
+  line-height: 1.1;
+}
+
+.time-period {
+  font-size: 0.2rem;
+  color: var(--accent);
+  font-weight: bold;
+  margin-top: 0px;
+}
+
+/* Calendar Icon - Box with holes at top and grid lines */
+.sys-icon.calendar-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(40,40,50,0.95));
+  border: 2px solid var(--accent);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 10px rgba(156, 78, 221, 0.2);
+}
+
+.calendar-icon::before,
+.calendar-icon::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+}
+
+.calendar-icon::before {
+  left: 6px;
+}
+
+.calendar-icon::after {
+  right: 6px;
+}
+
+.calendar-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0px;
+  position: relative;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Horizontal text for large INFO tab icons */
+.sys-icon[style*="width: 70px"] .calendar-display {
+  writing-mode: horizontal-tb;
+  flex-direction: column;
+}
+
+.calendar-display::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.cal-month {
+  font-size: 0.3rem;
+  color: var(--accent);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  margin-top: 0px;
+}
+
+.cal-day {
+  font-size: 0.5rem;
+  font-weight: bold;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+/* Larger text for INFO tab icons */
+.sys-icon[style*="width: 70px"] .cal-day {
+  font-size: 1.2rem;
+}
+
+/* Battery Icon - Rectangle with nub on right */
+.sys-icon.battery-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(40,40,50,0.95));
+  border: 2px solid var(--accent);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 10px rgba(156, 78, 221, 0.2);
+}
+
+.battery-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -3px;
+  width: 2px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transform: translateY(-50%);
+}
+
+.battery-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0px;
+  font-size: 0.4rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Horizontal text for large INFO tab icons */
+.sys-icon[style*="width: 70px"] .battery-display {
+  writing-mode: horizontal-tb;
+}
+
+.batt-value {
+  font-size: 0.5rem;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+/* Larger text for INFO tab icons */
+.sys-icon[style*="width: 70px"] .batt-value {
+  font-size: 1rem;
+}
+
+/* Speaker/Volume Icon - Speaker cone with wave */
+.sys-icon.volume-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(40,40,50,0.95));
+  border: 2px solid var(--accent);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 10px rgba(156, 78, 221, 0.2);
+}
+
+.volume-icon::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  left: 8px;
+  top: 50%;
+  border-left: 6px solid var(--accent);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  transform: translateY(-50%);
+}
+
+.volume-icon::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 12px;
+  right: 8px;
+  top: 50%;
+  background: var(--accent);
+  transform: translateY(-50%);
+  box-shadow: 
+    2px 0 0 -1px var(--accent),
+    -2px 0 0 -1px var(--accent);
+}
+
+.volume-display {
+  font-size: 0.4rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Horizontal text for large INFO tab icons */
+.sys-icon[style*="width: 70px"] .volume-display {
+  writing-mode: horizontal-tb;
+}
+
+.vol-value {
+  font-size: 0.5rem;
+  color: var(--accent);
+  font-weight: bold;
+  position: relative;
+  z-index: 1;
+}
+
+/* Larger text for INFO tab icons */
+.sys-icon[style*="width: 70px"] .vol-value {
+  font-size: 1rem;
+}
+
+.sys-icon:hover {
+  border-color: #ff00ff;
+  box-shadow: 0 0 14px rgba(156, 78, 221, 0.6), inset 0 0 10px rgba(156, 78, 221, 0.2);
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.3; }
+}
+
+/* Adjust app container to account for taskbar on dashboard */
+#dashboard {
+  margin-right: 0;
+  padding-right: 0;
+  transition: all 0.3s ease;
+}
+
+/* Adjust main content width */
+.app-container {
+  width: calc(100% - 0px);
 }
 
 

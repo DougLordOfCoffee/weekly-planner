@@ -14,11 +14,106 @@ let appData = {
     colors: { xp: '#9500ff', day: '#3f37c9', week: '#6ab04c', center: '#ffffff' },
     centerLabelContrast: 0.9,
     centerLabels: { day: false, xp: false, year: false },
+    currentUser: null,
     ...saved
 };
 
 function sync() {
     localStorage.setItem("voidData", JSON.stringify(appData));
+}
+
+// --- ACCOUNT & SAVE/LOAD SYSTEM ---
+async function hashPassword(pw) {
+    const enc = new TextEncoder();
+    const data = enc.encode(pw);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function registerAccount() {
+    const u = document.getElementById('acctUser').value.trim();
+    const p = document.getElementById('acctPass').value;
+    if (!u || !p) return alert('Enter username and password');
+    const h = await hashPassword(p);
+    const key = 'vp_user_' + u;
+    if (localStorage.getItem(key)) return alert('User exists');
+    const payload = { pwHash: h, data: JSON.parse(JSON.stringify(appData)) };
+    localStorage.setItem(key, JSON.stringify(payload));
+    alert('Registered. You are signed in.');
+    appData.currentUser = u;
+    sync();
+    updateAccountUI();
+}
+
+async function signIn() {
+    const u = document.getElementById('acctUser').value.trim();
+    const p = document.getElementById('acctPass').value;
+    if (!u || !p) return alert('Enter username and password');
+    const key = 'vp_user_' + u;
+    const stored = localStorage.getItem(key);
+    if (!stored) return alert('No such user');
+    const parsed = JSON.parse(stored);
+    const h = await hashPassword(p);
+    if (h !== parsed.pwHash) return alert('Wrong password');
+    appData.currentUser = u;
+    sync();
+    updateAccountUI();
+    alert('Signed in. You can now SAVE and LOAD your data.');
+}
+
+function signOut() {
+    appData.currentUser = null;
+    sync();
+    updateAccountUI();
+    alert('Signed out');
+}
+
+function saveDataToAccount() {
+    if (!appData.currentUser) return alert('Not signed in');
+    const key = 'vp_user_' + appData.currentUser;
+    const stored = localStorage.getItem(key);
+    if (!stored) return alert('Account not found');
+    const parsed = JSON.parse(stored);
+    // Save current appData (exclude currentUser from the saved data)
+    const toSave = JSON.parse(JSON.stringify(appData));
+    delete toSave.currentUser;
+    parsed.data = toSave;
+    localStorage.setItem(key, JSON.stringify(parsed));
+    alert('Data saved to your account');
+    sync();
+}
+
+function loadDataFromAccount() {
+    if (!appData.currentUser) return alert('Not signed in');
+    const key = 'vp_user_' + appData.currentUser;
+    const stored = localStorage.getItem(key);
+    if (!stored) return alert('Account not found');
+    const parsed = JSON.parse(stored);
+    // Load saved data into appData
+    const loaded = parsed.data;
+    appData = Object.assign({}, appData, loaded);
+    appData.currentUser = appData.currentUser || key.replace('vp_user_','');
+    sync();
+    // rebuild UI
+    document.getElementById('weeklyInputs').innerHTML = '<h3>WEEKLY</h3>';
+    document.getElementById('dailyInputs').innerHTML = '<h3>DAILY</h3>';
+    document.getElementById('oneTimeInputs').innerHTML = '<h3>ONE-TIME</h3>';
+    populateInputs();
+    updateVisuals();
+    renderView();
+    alert('Data loaded from your account');
+}
+
+function updateAccountUI() {
+    const saveBtn = document.getElementById('saveDataBtn');
+    const loadBtn = document.getElementById('loadDataBtn');
+    if (appData.currentUser) {
+        if (saveBtn) saveBtn.style.display = 'block';
+        if (loadBtn) loadBtn.style.display = 'block';
+    } else {
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (loadBtn) loadBtn.style.display = 'none';
+    }
 }
 
 // --- DASHBOARD TOGGLE ---
@@ -58,8 +153,28 @@ function applyVisibility() {
     const isDashboard = appData.view === "dashboard";
     document.getElementById('editor').classList.toggle('hidden', isDashboard);
     document.getElementById('dashboard').classList.toggle('hidden', !isDashboard);
+    document.getElementById('taskbar').classList.toggle('hidden', !isDashboard);
     document.getElementById('topBars').classList.toggle('hidden', !isDashboard);
     updateVisuals();
+    if (isDashboard) initSystemInfo(); // Start updating system info when dashboard shows
+}
+
+function toggleTaskbarCollapse() {
+    const taskbar = document.getElementById('taskbar');
+    const dashboard = document.getElementById('dashboard');
+    const compactInfo = document.getElementById('compactSysInfo');
+    const toggle = document.getElementById('taskbarToggle');
+    
+    const isCollapsed = taskbar.classList.toggle('collapsed');
+    dashboard.classList.toggle('taskbar-collapsed', isCollapsed);
+    
+    if (isCollapsed) {
+        compactInfo.classList.remove('hidden');
+        toggle.innerText = '◀';
+    } else {
+        compactInfo.classList.add('hidden');
+        toggle.innerText = '▶';
+    }
 }
 
 document.getElementById('saveBtn').onclick = toggleView;
@@ -80,13 +195,13 @@ function addInput(type, val = "", subs = []) {
     g.style.borderRadius = "8px";
 
     g.innerHTML = `
-        <div class="input-row">
-            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="width:60%;">
-            <label style="font-size:0.85rem;"><input type="checkbox" class="one-time" ${type==='oneTime'?'checked':''}> One-time</label>
-            <label style="font-size:0.85rem;"><input type="checkbox" class="use-slider"> Slider</label>
-            <input type="number" class="slider-max" min="1" value="5" style="width:60px;">
-            <button onclick="this.parentElement.nextElementSibling.appendChild(createSubIn())" style="background:var(--accent); color:white;">+S</button>
-            <button class="del-btn" onclick="this.closest('.input-group').remove()">X</button>
+        <div class="input-row" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <input type="text" class="m-in" value="${val}" placeholder="Goal..." style="flex: 1; min-width: 150px;">
+            <label style="font-size:0.8rem; white-space: nowrap;"><input type="checkbox" class="one-time" ${type==='oneTime'?'checked':''}> One-time</label>
+            <label style="font-size:0.8rem; white-space: nowrap;"><input type="checkbox" class="use-slider"> Slider</label>
+            <input type="number" class="slider-max" min="1" value="5" style="width: 50px;">
+            <button onclick="this.parentElement.nextElementSibling.appendChild(createSubIn())" style="background:var(--accent); color:white; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; white-space: nowrap;">+Sub</button>
+            <button class="del-btn" onclick="this.closest('.input-group').remove()" style="padding: 6px 10px;">X</button>
         </div>
         <div class="s-cont" style="margin-left:25px; display:flex; flex-direction:column;"></div>
     `;
@@ -97,10 +212,13 @@ function addInput(type, val = "", subs = []) {
 function createSubIn(val = "") {
     const div = document.createElement('div');
     div.className = "input-row";
-    div.style.marginTop = "5px";
+    div.style.marginTop = "8px";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.gap = "8px";
     div.innerHTML = `
-        <input type="text" class="s-in" value="${val}" placeholder="Subtask" style="width:80%; font-size:0.85rem;">
-        <button class="del-btn" onclick="this.parentElement.remove()">x</button>
+        <input type="text" class="s-in" value="${val}" placeholder="Subtask" style="flex: 1; font-size:0.8rem;">
+        <button class="del-btn" onclick="this.parentElement.remove()" style="padding: 4px 8px; font-size: 0.8rem;">x</button>
     `;
     return div;
 }
@@ -235,6 +353,10 @@ function renderView() {
         const oneCont = document.getElementById('oneTimeDisplay');
         if (oneCont) {
             oneCont.innerHTML = '<h3>ONE-TIME</h3>';
+            if (appData.oneTime.length === 0) {
+                oneCont.style.display = 'none'; // Hide if empty
+            } else {
+                oneCont.style.display = 'block';
                 appData.oneTime.forEach((t,i) => {
                     if (!t.val) return;
                     const row = document.createElement('div'); row.className='task-row';
@@ -243,6 +365,7 @@ function renderView() {
                     row.append(cb,label);
                     oneCont.appendChild(row);
                 });
+            }
         }
     });
 
@@ -360,57 +483,89 @@ function importData(e) {
     reader.readAsText(f);
 }
 
-// --- SIMPLE LOCAL ACCOUNT (client-only) ---
-async function hashPassword(pw) {
-    const enc = new TextEncoder();
-    const data = enc.encode(pw);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+// --- SYSTEM INFO ---
+let sysInfoInterval = null;
+
+async function initSystemInfo() {
+    if (sysInfoInterval) clearInterval(sysInfoInterval);
+    updateSystemInfo();
+    sysInfoInterval = setInterval(updateSystemInfo, 1000);
 }
 
-async function registerAccount() {
-    const u = document.getElementById('acctUser').value.trim();
-    const p = document.getElementById('acctPass').value;
-    if (!u || !p) return alert('Enter username and password');
-    const h = await hashPassword(p);
-    const key = 'vp_user_' + u;
-    if (localStorage.getItem(key)) return alert('User exists');
-    const payload = { pwHash: h, data: appData };
-    localStorage.setItem(key, JSON.stringify(payload));
-    alert('Registered. You are signed in.');
-    appData.currentUser = u;
-    sync();
+async function updateSystemInfo() {
+    // Update time and date
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const timeEl = document.getElementById('sysTime');
+    const dateEl = document.getElementById('sysDate');
+    
+    if (timeEl) timeEl.innerText = timeStr;
+    if (dateEl) dateEl.innerText = dateStr;
+    
+    // Compact time display with separated hour:min and AM/PM
+    const compactTimeHourEl = document.getElementById('compactTimeHour');
+    const compactTimeMinEl = document.getElementById('compactTimeMin');
+    const compactPeriodEl = document.getElementById('compactPeriod');
+    
+    // Info tab time display
+    const infoTimeHourEl = document.getElementById('infoTimeHour');
+    const infoTimeMinEl = document.getElementById('infoTimeMin');
+    const infoPeriodEl = document.getElementById('infoPeriod');
+    
+    if (compactTimeHourEl || infoTimeHourEl) {
+        let hours = now.getHours();
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const period = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const hoursStr = String(hours).padStart(2, '0');
+        if (compactTimeHourEl) {
+            compactTimeHourEl.innerText = hoursStr;
+            compactTimeMinEl.innerText = mins;
+            if (compactPeriodEl) compactPeriodEl.innerText = period;
+        }
+        if (infoTimeHourEl) {
+            infoTimeHourEl.innerText = hoursStr;
+            infoTimeMinEl.innerText = mins;
+            if (infoPeriodEl) infoPeriodEl.innerText = period;
+        }
+    }
+    
+    // Compact date display and Info tab date
+    const compactMonthEl = document.getElementById('compactMonth');
+    const compactDayEl = document.getElementById('compactDay');
+    const infoMonthEl = document.getElementById('infoMonth');
+    const infoDayEl = document.getElementById('infoDay');
+    const monthStr = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const dayStr = String(now.getDate()).padStart(2, '0');
+    if (compactMonthEl) compactMonthEl.innerText = monthStr;
+    if (compactDayEl) compactDayEl.innerText = dayStr;
+    if (infoMonthEl) infoMonthEl.innerText = monthStr;
+    if (infoDayEl) infoDayEl.innerText = dayStr;
+    
+    // Try to get battery info
+    try {
+        if (navigator.getBattery) {
+            const battery = await navigator.getBattery();
+            const batteryEl = document.getElementById('sysBattery');
+            const compactBatteryEl = document.getElementById('compactBatteryValue');
+            const infoBatteryEl = document.getElementById('infoBattery');
+            const batteryPercent = Math.round(battery.level * 100);
+            if (batteryEl) batteryEl.innerText = batteryPercent;
+            if (compactBatteryEl) compactBatteryEl.innerText = batteryPercent;
+            if (infoBatteryEl) infoBatteryEl.innerText = batteryPercent;
+        }
+    } catch(e) { /* Battery API not available */ }
+    
+    // Volume: placeholder
+    const volEl = document.getElementById('sysVolume');
+    const compactVolEl = document.getElementById('compactVolumeValue');
+    const infoVolEl = document.getElementById('infoVolume');
+    if (volEl) volEl.innerText = '~';
+    if (compactVolEl) compactVolEl.innerText = '~';
+    if (infoVolEl) infoVolEl.innerText = '~';
 }
 
-async function signIn() {
-    const u = document.getElementById('acctUser').value.trim();
-    const p = document.getElementById('acctPass').value;
-    if (!u || !p) return alert('Enter username and password');
-    const key = 'vp_user_' + u;
-    const stored = localStorage.getItem(key);
-    if (!stored) return alert('No such user');
-    const parsed = JSON.parse(stored);
-    const h = await hashPassword(p);
-    if (h !== parsed.pwHash) return alert('Wrong password');
-    // load user's saved data
-    appData = Object.assign({}, appData, parsed.data);
-    appData.currentUser = u;
-    sync();
-    // rebuild UI
-    document.getElementById('weeklyInputs').innerHTML = '<h3>WEEKLY</h3>';
-    document.getElementById('dailyInputs').innerHTML = '<h3>DAILY</h3>';
-    document.getElementById('oneTimeInputs').innerHTML = '<h3>ONE-TIME</h3>';
-    populateInputs();
-    updateVisuals();
-    renderView();
-    alert('Signed in');
-}
-
-function signOut() {
-    delete appData.currentUser;
-    sync();
-    alert('Signed out');
-}
 
 // (removed task-based week completion) Week progress is time-based in updateTime()
 
@@ -600,6 +755,20 @@ if (appData.guides && appData.guides.length) {
     appData.guides.forEach(g => addGuide(g.name, g.text));
 }
 
+// Taskbar tab switching
+document.querySelectorAll('.taskbar-tab').forEach(tab => {
+    tab.onclick = () => {
+        const tabName = tab.dataset.tab;
+        document.querySelectorAll('.taskbar-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.taskbar-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        const panelId = `taskbar-${tabName}`;
+        const panel = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
+    };
+});
+
 applyVisibility();
 updateVisuals();
 renderView();
+updateAccountUI();
